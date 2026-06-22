@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>旅行支援ツール プロトタイプ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+    <div id="content-area"></div>
+
+<footer>
+        &copy; 2026 旅行支援ツール
+        | <button onclick="showPage('feedback')" class="feedback-btn">
+            <i class="fa-solid fa-comment-dots"></i> ご意見などはこちらから！
+          </button>
+    </footer>
+</div>
+
+<script>
+    // 最初にホームページを表示
+    document.addEventListener("DOMContentLoaded", () => {
+        showPage('home');
+    });
+
+    // ページ遷移制御
+    function showPage(pageName) {
+        fetch(pageName + '.html')
+            .then(response => {
+                if (!response.ok) throw new Error('ページの読み込みに失敗しました');
+                return response.text();
+            })
+            .then(html => {
+                const contentArea = document.getElementById('content-area');
+                contentArea.innerHTML = html;
+
+                // 読み込んだHTML内の script タグを再実行
+                const scripts = contentArea.querySelectorAll('script');
+                scripts.forEach(oldScript => {
+                    const newScript = document.createElement('script');
+                    newScript.textContent = oldScript.textContent;
+                    document.body.appendChild(newScript);
+                    newScript.remove(); 
+                });
+
+                // マップ画面の場合の初期化
+                if (pageName === 'page2') {
+                    setTimeout(() => {
+                        loadHotelMap();
+                    }, 100);
+                }
+            })
+            .catch(error => {
+                console.error(error);
+                document.getElementById('content-area').innerHTML = '<p style="color:red; text-align:center;">ページの読み込みに失敗しました。</p>';
+            });
+    }
+
+    // 地図描画・CSVデータ処理
+    function loadHotelMap() {
+        const mapElement = document.getElementById('map');
+        if (!mapElement) return;
+
+        const map = L.map('map').setView([35.64, 139.75], 13);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        fetch('hoteldata.csv')
+            .then(response => {
+                if (!response.ok) throw new Error('CSVファイルが読めません');
+                return response.text();
+            })
+            .then(csvData => {
+                const lines = csvData.split(/\r?\n/);
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (line === '') continue;
+
+                    const columns = line.split(',').map(col => col.replace(/^["']|["']$/g, '').trim());
+                    if (columns.length < 5) continue;
+
+                    let name = columns[0];
+                    let lat = null, lng = null, evalu = null, review_cnt = null;
+
+                    for (let j = 1; j < columns.length; j++) {
+                        const val = parseFloat(columns[j]);
+                        if (isNaN(val)) continue;
+
+                        if (val >= 35.0 && val <= 36.5 && lat === null) lat = val;
+                        else if (val >= 139.0 && val <= 140.5 && lng === null) lng = val;
+                        else if (val >= 1.0 && val <= 5.0 && evalu === null) evalu = val;
+                        else review_cnt = parseInt(columns[j], 10);
+                    }
+
+                    if (lat === null || lng === null) {
+                        evalu = parseFloat(columns[1]);
+                        review_cnt = parseInt(columns[2], 10);
+                        lat = parseFloat(columns[3]);
+                        lng = parseFloat(columns[4]);
+                    }
+
+                    if (isNaN(lat) || isNaN(lng)) continue;
+
+                    evalu = evalu || 0;
+                    review_cnt = review_cnt || 0;
+
+                    let circleColor = "yellow";
+                    let circleOpacity = 0.4;
+                    let circleRadius = 80;
+
+                    if (review_cnt >= 5000) {
+                        circleColor = "red"; circleOpacity = 0.8; circleRadius = 150;
+                    } else if (review_cnt >= 1000) {
+                        circleColor = "orange"; circleOpacity = 0.6; circleRadius = 120;
+                    } else if (review_cnt >= 500) {
+                        circleColor = "gold"; circleOpacity = 0.5; circleRadius = 100;
+                    }
+
+                    L.circle([lat, lng], {
+                        color: circleColor,
+                        fillColor: circleColor,
+                        fillOpacity: circleOpacity,
+                        radius: circleRadius
+                    })
+                    .bindPopup(`
+                        <div style="font-size:14px; min-width: 150px; text-align: left;">
+                            <b style="font-size: 15px; color: #1e293b;">${name}</b><br>
+                            <span style="color:#e67e22; font-weight: bold;">★ ${evalu}</span><br>
+                            <span style="color: #64748b;">レビュー数:</span> <b>${review_cnt.toLocaleString()}件</b>
+                        </div>
+                    `)
+                    .addTo(map);
+                }
+                setTimeout(() => { map.invalidateSize(); }, 50);
+            })
+            .catch(error => {
+                console.error(error);
+                mapElement.innerHTML = `<div style="padding:100px 0; text-align:center; color:red; font-weight:bold;">hoteldata.csvの読み込みに失敗しました。</div>`;
+            });
+    }
+</script>
+</body>
+</html>

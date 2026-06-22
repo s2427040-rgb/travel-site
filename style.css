@@ -1,0 +1,228 @@
+/* ==========================================================================
+   旅行支援ツール 共通スタイルシート (style.css)
+   ========================================================================== */
+
+/* --- 1. 全体・デザイン変数設定 --- */
+:root {
+    --primary-color: #10b981;  /* メインの緑色 */
+    --bg-color: #ffffff;
+    --text-color: #1e293b;
+    --border-color: #e2e8f0;
+}
+
+* { 
+    box-sizing: border-box; 
+    margin: 0; 
+    padding: 0; 
+}
+
+body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+/* --- 2. 画面レイアウト構造 --- */
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 40px 20px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+#content-area {
+    flex: 1;
+}
+
+footer {
+    text-align: center;
+    padding: 20px 0;
+    color: #64748b;
+    font-size: 0.9rem;
+    margin-top: 40px;
+    border-top: 1px solid var(--border-color);
+}
+
+/* --- 3. 共通パーツ（ボタン・見出しなど） --- */
+h2 {
+    margin-bottom: 15px;
+}
+
+.back-btn {
+    display: block; 
+    margin: 20px auto 0; 
+    padding: 10px 25px;
+    background-color: #64748b; 
+    color: white; 
+    border: none; 
+    border-radius: 8px;
+    cursor: pointer; 
+    font-size: 1rem; 
+    font-weight: bold; 
+    transition: background 0.2s;
+}
+
+.back-btn:hover { 
+    background-color: #475569; 
+}
+
+.coming-soon {
+    display: none; /* 開発中表記用 */
+}
+
+/* --- 4. ホーム画面 (home.html) 用スタイル --- */
+.menu-grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); 
+    gap: 20px; 
+    width: 100%; 
+    margin-top: 40px; 
+}
+
+.menu-card {
+    background: var(--bg-color); 
+    border: 2px solid var(--border-color); 
+    border-radius: 20px;
+    padding: 40px 20px; 
+    text-align: center; 
+    cursor: pointer; 
+    transition: all 0.3s ease;
+}
+
+.menu-card:hover { 
+    border-color: var(--primary-color); 
+    background-color: #f0fdf4; 
+    transform: translateY(-3px); 
+}
+
+.menu-card i { 
+    font-size: 2.8rem; 
+    color: var(--primary-color); 
+    margin-bottom: 15px; 
+}
+
+.menu-card h2 { 
+    font-size: 1.3rem; 
+}
+
+/* --- 5. チャット画面 (page1.html) 用スタイル --- */
+#chatWindow table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+    background: #ffffff;
+    border-radius: 8px;
+    overflow: hidden;
+    font-size: 14px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+#chatWindow th, #chatWindow td {
+    border: 1px solid var(--border-color);
+    padding: 8px 10px;
+    text-align: left;
+}
+
+#chatWindow th {
+    background-color: #f1f5f9;
+    font-weight: bold;
+    color: #1e293b;
+}
+
+#chatWindow tr:nth-child(even) {
+    background-color: #f8fafc;
+}
+
+#chatWindow ul, #chatWindow ol {
+    padding-left: 20px;
+    margin: 8px 0;
+}
+
+/* 💡 追加：箇条書きのホテル項目同士の間隔を空ける設定 */
+#chatWindow li {
+    margin-bottom: 16px;      /* ホテルとホテルの間を16px空けて見やすくします */
+    padding-left: 4px;        /* 文字の始まりに少しだけ余裕を持たせます */
+}
+
+#chatWindow li:last-child {
+    margin-bottom: 0;         /* 一番最後の項目の後ろには無駄な余白を作らない */
+}
+
+/* 箇条書きの中にある太字（ホテル名など）をより際立たせる微調整 */
+#chatWindow li strong {
+    color: #0f172a;
+}
+
+/* --- 6. マップ画面 (page2.html) 用スタイル --- */
+.map-container {
+    max-width: 900px;
+    margin: 0 auto;
+    text-align: left;
+}
+
+#map { 
+    width: 100%; 
+    height: 550px; 
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    margin-bottom: 25px;
+    z-index: 1;
+}
+/* --- 6. ご意見箱 (feedback.html) 用スタイル --- */
+
+/* フッター内のボタンをテキストリンク風に見せる */
+.feedback-btn {
+    background: none;
+    border: none;
+    color: #64748b;
+    font-family: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+    margin-left: 10px;
+    transition: color 0.2s, text-decoration 0.2s;
+}
+
+.feedback-btn:hover {
+    color: var(--primary-color);
+    text-shadow: 0 0 1px rgba(16, 185, 129, 0.2);
+}
+
+/* ご意見箱ページのコンテナレイアウト */
+.feedback-container {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 10px 10px 30px 10px;
+    text-align: center;
+}
+
+.feedback-container h2 {
+    font-size: 1.8rem;
+    margin-bottom: 10px;
+    color: var(--text-color);
+}
+
+.feedback-subtitle {
+    font-size: 0.95rem;
+    color: #64748b;
+    margin-bottom: 25px;
+    line-height: 1.5;
+}
+
+/* フォームを囲む枠（スマートフォン対応・影の装飾） */
+.form-wrapper {
+    width: 100%;
+    background: #ffffff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--border-color);
+    margin-bottom: 30px;
+}
+
+/* iframeの微調整 */
+.form-wrapper iframe {
+    display: block; 
+}
