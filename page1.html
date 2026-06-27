@@ -1,12 +1,215 @@
-<h2 style="margin-bottom: 15px; font-family: 'Noto Sans JP', sans-serif; color: #1e293b;">宿泊先を探す (AIチャットボット)</h2>
+<h2 style="margin-bottom: 15px; font-family: 'Noto Sans JP', sans-serif; color: #1e293b;">宿泊先・観光を探す (AIコンシェルジュ)</h2>
 
-<div style="width: 100%; max-width: 850px; margin: 0 auto 20px auto; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.15); background: #ffffff;">
-    <iframe 
-        src="https://udify.app/chatbot/k7y2908MREZYQ5mw" 
-        style="width: 100%; height: 700px; border: none; display: block;"
-        allow="microphone">
-        読み込んでいます…
-    </iframe>
+<div style="width: 100%; max-width: 850px; margin: 0 auto 20px auto; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); background: #ffffff; padding: 25px; box-sizing: border-box;">
+    
+    <div id="survey-container">
+        <h3 style="margin-top:0; color:#10b981; font-family: 'Noto Sans JP', sans-serif;">まずはご希望の条件を選択してください</h3>
+        
+        <div style="margin-bottom: 20px;">
+            <label style="display:block; font-weight:bold; margin-bottom:8px; color:#4b5563;">知りたい情報</label>
+            <div style="display:flex; gap:10px;">
+                <button type="button" class="survey-btn node-active" onclick="changeNode('HOTEL', this)" style="padding:10px 20px; border:2px solid #10b981; background:#ecfdf5; color:#047857; border-radius:8px; cursor:pointer; font-weight:bold; transition:0.2s;">宿泊・ホテルの相談</button>
+                <button type="button" class="survey-btn" onclick="changeNode('SIGHTSEEING', this)" style="padding:10px 20px; border:1px solid #cbd5e1; background:#ffffff; color:#64748b; border-radius:8px; cursor:pointer; font-weight:bold; transition:0.2s;">周辺観光・スポットの相談</button>
+            </div>
+        </div>
+
+        <div id="hotel-form-group">
+            <div style="margin-bottom: 15px;">
+                <label style="display:block; font-weight:bold; margin-bottom:8px; color:#4b5563;">チェックイン日</label>
+                <input type="date" id="survey-date" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box;">
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display:block; font-weight:bold; margin-bottom:8px; color:#4b5563;">大人人数</label>
+                <select id="survey-adults" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box;">
+                    <option value="1">1人</option>
+                    <option value="2">2人</option>
+                    <option value="3">3人</option>
+                    <option value="4">4人以上</option>
+                </select>
+            </div>
+            <div style="margin-bottom: 25px;">
+                <label style="display:block; font-weight:bold; margin-bottom:8px; color:#4b5563;">こだわり条件・キーワード</label>
+                <input type="text" id="survey-keyword" placeholder="例: 露天風呂がある、駅徒歩5分、朝食が美味しい" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box;">
+            </div>
+        </div>
+
+        <button type="button" onclick="startAIChat()" style="width:100%; padding:14px; background:#10b981; color:white; border:none; border-radius:8px; font-size:1.1rem; font-weight:bold; cursor:pointer; transition:0.2s; box-shadow:0 4px 6px rgba(16,185,129,0.2);">
+            AIコンシェルジュに相談を始める
+        </button>
+    </div>
+
+    <div id="dify-chatbot-container" style="display:none; width:100%;">
+        <div id="chat-timeline" style="height: 480px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; background: #f8fafc; margin-bottom: 15px; box-sizing: border-box;">
+            </div>
+
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <input type="text" id="chat-input" placeholder="コンシェルジュに追加の質問をする..." style="flex: 1; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1rem; box-sizing: border-box;" onkeydown="if(event.key==='Enter') sendAdditionalMessage()">
+            <button type="button" onclick="sendAdditionalMessage()" style="padding: 12px 24px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; white-space: nowrap;">送信</button>
+        </div>
+    </div>
+
 </div>
 
-<button class="back-btn" onclick="showPage('home')">ホームに戻る</button>
+<script>
+    // 現在選択されているノード（初期値はホテル）
+    let currentTargetNode = 'HOTEL';
+    
+    // 会話の文脈を維持するための変数（Difyから返ってきたセッションIDを保存）
+    let currentConversationId = ""; 
+
+    // 🚀【重要】ここにVercelで確認したあなたのURLを貼り付けてください（末尾の /api/chat は残す）
+    const VERCEL_SERVER_URL = 'https://dify-backend-bice.vercel.app/api/chat';
+
+    // 今日の日付を初期値として設定する処理
+    (function setInitialDate() {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        const dateInput = document.getElementById('survey-date');
+        if (dateInput) dateInput.value = `${yyyy}-${mm}-${dd}`;
+    })();
+
+    // タブ（宿泊か観光か）を切り替える関数
+    function changeNode(nodeType, element) {
+        currentTargetNode = nodeType;
+        
+        // 全ボタンのスタイルをリセット
+        document.querySelectorAll('.survey-btn').forEach(btn => {
+            btn.style.border = '1px solid #cbd5e1';
+            btn.style.background = '#ffffff';
+            btn.style.color = '#64748b';
+            btn.classList.remove('node-active');
+        });
+
+        // 選択されたボタンをアクティブ化
+        element.style.border = '2px solid #10b981';
+        element.style.background = '#ecfdf5';
+        element.style.color = '#047857';
+        element.classList.add('node-active');
+
+        // 観光を選んだ場合はホテルの詳細入力を隠す
+        const hotelForm = document.getElementById('hotel-form-group');
+        hotelForm.style.display = (nodeType === 'HOTEL') ? 'block' : 'none';
+    }
+
+    // チャット開始メインロジック
+    function startAIChat() {
+        const checkinDate = document.getElementById('survey-date').value;
+        const adultNum = document.getElementById('survey-adults').value;
+        const keyword = document.getElementById('survey-keyword').value;
+
+        // アンケートを隠してチャット用コンテナを表示
+        document.getElementById('survey-container').style.display = 'none';
+        document.getElementById('dify-chatbot-container').style.display = 'block';
+
+        // タイムラインに最初の「考え中」を表示
+        appendMessage('system', 'コンシェルジュが条件を確認しています。少々お待ちください...');
+
+        // 初回動作用のプロンプト（トリガーメッセージ）の作成
+        let initialQuery = "";
+        if (currentTargetNode === 'HOTEL') {
+            initialQuery = `以下の条件で宿泊先を探してください。【チェックイン】:${checkinDate} 【人数】:${adultNum}人 【こだわり】:${keyword || "特になし"}`;
+        } else {
+            initialQuery = "周辺のおすすめ観光スポットやグルメ情報を教えてください。";
+        }
+
+        // Vercelの中継サーバー（API）へ送信
+        fetch(VERCEL_SERVER_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                checkin: checkinDate,
+                adults: adultNum,
+                keyword: keyword,
+                query: initialQuery,
+                conversation_id: "" // 初回なので空
+            })
+        })
+        .then(res => {
+            if (!res.ok) throw new Error('Network response was not ok');
+            return res.json();
+        })
+        .then(data => {
+            clearSystemMessage(); // 「考え中...」を消去
+            
+            // Difyから返ってきたMarkdownテキストを、index.htmlで読み込まれているmarked.jsでHTMLに変換して表示
+            appendMessage('ai', marked.parse(data.answer));
+            
+            // 返ってきた会話IDを記憶（これで次回の追加質問がつながる）
+            currentConversationId = data.conversation_id; 
+        })
+        .catch(err => {
+            console.error(err);
+            clearSystemMessage();
+            appendMessage('system', '通信エラーが発生しました。Vercelの設定やURLが正しいか確認してください。');
+        });
+    }
+
+    // 2回目以降、ユーザーが下の入力欄から追加で質問したときの処理
+    function sendAdditionalMessage() {
+        const inputEl = document.getElementById('chat-input');
+        const userText = inputEl.value.trim();
+        if (!userText) return;
+
+        // ユーザーの発言を画面に吹き出しとして追加
+        appendMessage('user', userText);
+        inputEl.value = ""; // 入力欄をクリア
+
+        // 「考え中...」を表示
+        appendMessage('system', 'コンシェルジュが回答を考えています...');
+
+        // 2回目以降の通信（記録しておいた会話IDを渡すことで、文脈を維持する）
+        fetch(VERCEL_SERVER_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                query: userText,
+                conversation_id: currentConversationId // これが超重要です！
+            })
+        })
+        .then(res => {
+            if (!res.ok) throw new Error('Network response was not ok');
+            return res.json();
+        })
+        .then(data => {
+            clearSystemMessage();
+            appendMessage('ai', marked.parse(data.answer));
+        })
+        .catch(err => {
+            console.error(err);
+            clearSystemMessage();
+            appendMessage('system', 'エラーが発生し、回答を取得できませんでした。');
+        });
+    }
+
+    // タイムラインにメッセージの吹き出しを追加する共通ヘルパー関数
+    function appendMessage(sender, text) {
+        const timeline = document.getElementById('chat-timeline');
+        let msgHtml = "";
+
+        if (sender === 'system') {
+            msgHtml = `<div class="msg-system" style="text-align:center; color:#64748b; font-size:0.9rem; margin:10px 0; font-style:italic;">${text}</div>`;
+        } else {
+            const isUser = (sender === 'user');
+            msgHtml = `
+                <div class="msg-${sender}" style="margin-bottom:15px; text-align: ${isUser ? 'right' : 'left'};">
+                    <div style="display:inline-block; max-width:80%; padding:12px 16px; border-radius:12px; 
+                                background:${isUser ? '#10b981' : '#ffffff'}; 
+                                color:${isUser ? '#ffffff' : '#1e293b'}; 
+                                box-shadow: 0 2px 6px rgba(0,0,0,0.06); 
+                                text-align:left; line-height:1.5; font-size:0.95rem;">
+                        ${text}
+                    </div>
+                </div>`;
+        }
+        
+        timeline.insertAdjacentHTML('beforeend', msgHtml);
+        timeline.scrollTop = timeline.scrollHeight; // 自動で最下部へスクロール
+    }
+
+    // ローディング中などのシステムメッセージを一掃する関数
+    function clearSystemMessage() {
+        document.querySelectorAll('.msg-system').forEach(el => el.remove());
+    }
+</script>
