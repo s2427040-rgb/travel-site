@@ -24,6 +24,16 @@
             <input type="date" id="survey-checkin" style="padding:10px; border:2px solid #cbd5e1; border-radius:8px; font-size:1rem; color:#4b5563; width: 100%; box-sizing: border-box;">
         </div>
 
+        <div style="margin-bottom: 20px;">
+            <label style="display:block; font-weight:bold; margin-bottom:8px; color:#4b5563;">大人の人数</label>
+            <select id="survey-adults" style="padding:10px; border:2px solid #cbd5e1; border-radius:8px; font-size:1rem; color:#4b5563; background:white; width: 100%; box-sizing: border-box;">
+                <option value="1">1名</option>
+                <option value="2">2名</option>
+                <option value="3">3名</option>
+                <option value="4">4名以上</option>
+            </select>
+        </div>
+
         <div style="margin-bottom: 25px;">
             <label style="display:block; font-weight:bold; margin-bottom:8px; color:#4b5563;">宿泊日数</label>
             <select id="survey-nights" style="padding:10px; border:2px solid #cbd5e1; border-radius:8px; font-size:1rem; color:#4b5563; background:white; width: 100%; box-sizing: border-box;">
@@ -53,7 +63,7 @@
     const VERCEL_SERVER_URL = 'https://dify-backend-bice.vercel.app/api/chat';
     let currentConversationId = '';
 
-    // 今日以降の日付しか選れないように制限＆初期値をセット
+    // 今日以降の日付しか選べないように制限＆初期値をセット
     const today = new Date().toISOString().split('T')[0];
     const checkinInput = document.getElementById('survey-checkin');
     if (checkinInput) {
@@ -67,6 +77,7 @@
     function submitSurvey() {
         const keyword = document.getElementById('survey-keyword').value.trim();
         const checkin = document.getElementById('survey-checkin').value;
+        const adults = document.getElementById('survey-adults').value; // 人数の取得
         const nights = document.getElementById('survey-nights').value;
 
         if (!keyword) {
@@ -74,13 +85,13 @@
             return;
         }
 
-        // プロンプトの組み立て
-        const promptQuery = `【新規旅行相談】目的地：${keyword}、チェックイン日：${checkin}、宿泊日数：${nights}泊。この条件に合うおすすめのホテルを楽天トラベルで検索して提案してください。`;
+        // プロンプトの組み立てに「大人の人数」もしっかり含めました
+        const promptQuery = `【新規旅行相談】目的地：${keyword}、チェックイン日：${checkin}、大人の人数：${adults}名、宿泊日数：${nights}泊。この条件に合うおすすめのホテルを楽天トラベルで検索して提案してください。`;
 
         document.getElementById('survey-container').style.display = 'none';
         document.getElementById('chat-container').style.display = 'block';
 
-        appendMessage('user', `以下の条件で探してください：\n・目的地：${keyword}\n・日程：${checkin} から ${nights}泊`);
+        appendMessage('user', `以下の条件で探してください：\n・目的地：${keyword}\n・日程：${checkin} から ${nights}泊\n・人数：大人 ${adults}名`);
         showSystemMessage('AIコンシェルジュが楽天トラベルで空室をお調べしています。少々お待ちください...');
 
         fetch(VERCEL_SERVER_URL, {
