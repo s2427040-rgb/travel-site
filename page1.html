@@ -8,146 +8,127 @@
         <h3 style="margin-top:0; color:#10b981; font-family: 'Noto Sans JP', sans-serif;">まずはご希望の条件を選択してください</h3>
         
         <div style="margin-bottom: 20px;">
+            <label style="display:block; font-weight:bold; margin-bottom:8px; color:#4b5563;">目的地・キーワード <span style="color:red; font-size:0.8rem;">(必須)</span></label>
+            <input type="text" id="survey-keyword" placeholder="例：浅草駅、東京ディズニーランド、京都駅周辺" style="width:100%; padding:12px; border:2px solid #cbd5e1; border-radius:8px; font-size:1rem; box-sizing:border-box; outline:none; transition:border-color 0.2s;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#cbd5e1'">
+        </div>
+
+        <div style="margin-bottom: 20px;">
             <label style="display:block; font-weight:bold; margin-bottom:8px; color:#4b5563;">知りたい情報</label>
             <div style="display:flex; gap:10px;">
-                <button type="button" class="survey-btn node-active" onclick="changeNode('HOTEL', this)" style="padding:10px 20px; border:2px solid #10b981; background:#ecfdf5; color:#047857; border-radius:8px; cursor:pointer; font-weight:bold; transition:0.2s;">宿泊・ホテルの相談</button>
-                <button type="button" class="survey-btn" onclick="changeNode('SIGHTSEEING', this)" style="padding:10px 20px; border:1px solid #cbd5e1; background:#ffffff; color:#64748b; border-radius:8px; cursor:pointer; font-weight:bold; transition:0.2s;">周辺観光・スポットの相談</button>
+                <button type="button" class="survey-btn node-active" onclick="changeNode('HOTEL', this)" style="padding:10px 20px; border:2px solid #10b981; background:#ecfdf5; color:#047857; border-radius:8px; cursor:pointer; font-weight:bold;">宿泊先を探す</button>
             </div>
         </div>
 
-        <div id="hotel-form-group">
-            <div style="margin-bottom: 15px;">
-                <label style="display:block; font-weight:bold; margin-bottom:8px; color:#4b5563;">チェックイン日</label>
-                <input type="date" id="survey-date" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box;">
-            </div>
-            <div style="margin-bottom: 15px;">
-                <label style="display:block; font-weight:bold; margin-bottom:8px; color:#4b5563;">大人人数</label>
-                <select id="survey-adults" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box;">
-                    <option value="1">1人</option>
-                    <option value="2">2人</option>
-                    <option value="3">3人</option>
-                    <option value="4">4人以上</option>
-                </select>
-            </div>
-            <div style="margin-bottom: 25px;">
-                <label style="display:block; font-weight:bold; margin-bottom:8px; color:#4b5563;">こだわり条件・キーワード</label>
-                <input type="text" id="survey-keyword" placeholder="例: 露天風呂がある、駅徒歩5分、朝食が美味しい" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box;">
-            </div>
+        <div style="margin-bottom: 20px;">
+            <label style="display:block; font-weight:bold; margin-bottom:8px; color:#4b5563;">チェックイン日</label>
+            <input type="date" id="survey-checkin" style="padding:10px; border:2px solid #cbd5e1; border-radius:8px; font-size:1rem; color:#4b5563;">
         </div>
 
-        <button type="button" onclick="startAIChat()" style="width:100%; padding:14px; background:#10b981; color:white; border:none; border-radius:8px; font-size:1.1rem; font-weight:bold; cursor:pointer; transition:0.2s; box-shadow:0 4px 6px rgba(16,185,129,0.2);">
-            AIコンシェルジュに相談を始める
+        <div style="margin-bottom: 25px;">
+            <label style="display:block; font-weight:bold; margin-bottom:8px; color:#4b5563;">宿泊日数</label>
+            <select id="survey-nights" style="padding:10px; border:2px solid #cbd5e1; border-radius:8px; font-size:1rem; color:#4b5563; background:white;">
+                <option value="1">1泊</option>
+                <option value="2">2泊</option>
+                <option value="3">3泊</option>
+                <option value="4">4泊以上</option>
+            </select>
+        </div>
+
+        <button type="button" onclick="submitSurvey()" style="width:100%; padding:14px; background:#10b981; color:white; border:none; border-radius:8px; font-size:1.1rem; font-weight:bold; cursor:pointer; box-shadow:0 4px 6px rgba(16,185,129,0.2); transition:background 0.2s;">
+            <i class="fa-solid fa-paper-plane" style="margin-right:8px;"></i> 相談を始める
         </button>
     </div>
 
-    <div id="dify-chatbot-container" style="display:none; width:100%;">
-        <div id="chat-timeline" style="height: 480px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; background: #f8fafc; margin-bottom: 15px; box-sizing: border-box;"></div>
-        <div style="display: flex; gap: 10px; align-items: center;">
-            <input type="text" id="chat-input" placeholder="コンシェルジュに追加の質問をする..." style="flex: 1; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1rem; box-sizing: border-box;" onkeydown="if(event.key==='Enter') sendAdditionalMessage()">
-            <button type="button" onclick="sendAdditionalMessage()" style="padding: 12px 24px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; white-space: nowrap;">送信</button>
+    <div id="chat-container" style="display: none;">
+        <div id="chat-timeline" style="height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; background: #f8fafc; margin-bottom: 15px;"></div>
+        
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="chat-input" placeholder="追加の質問や条件をここに入力..." style="flex: 1; padding: 12px; border: 2px solid #cbd5e1; border-radius: 8px; font-size: 1rem;">
+            <button onclick="sendAdditionalMessage()" style="padding: 0 20px; background: #10b981; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">送信</button>
         </div>
     </div>
 </div>
 
 <script>
-    let currentTargetNode = 'HOTEL';
-    let currentConversationId = ""; 
     const VERCEL_SERVER_URL = 'https://dify-backend-bice.vercel.app/api/chat';
+    let currentConversationId = '';
 
-    (function setInitialDate() {
-        const today = new Date();
-        const yyyy = today.getFullYear();
-        const mm = String(today.getMonth() + 1).padStart(2, '0');
-        const dd = String(today.getDate()).padStart(2, '0');
-        const dateInput = document.getElementById('survey-date');
-        if (dateInput) dateInput.value = `${yyyy}-${mm}-${dd}`;
-    })();
-
-    function changeNode(nodeType, element) {
-        currentTargetNode = nodeType;
-        document.querySelectorAll('.survey-btn').forEach(btn => {
-            btn.style.border = '1px solid #cbd5e1';
-            btn.style.background = '#ffffff';
-            btn.style.color = '#64748b';
-            btn.classList.remove('node-active');
-        });
-        element.style.border = '2px solid #10b981';
-        element.style.background = '#ecfdf5';
-        element.style.color = '#047857';
-        element.classList.add('node-active');
-
-        const hotelForm = document.getElementById('hotel-form-group');
-        if (hotelForm) {
-            hotelForm.style.display = (nodeType === 'HOTEL') ? 'block' : 'none';
-        }
+    // 今日以降の日付しか選べないように制限＆初期値をセット
+    const today = new Date().toISOString().split('T')[0];
+    const checkinInput = document.getElementById('survey-checkin');
+    if (checkinInput) {
+        checkinInput.min = today;
+        checkinInput.value = today;
     }
 
-    function startAIChat() {
-        const checkinDate = document.getElementById('survey-date').value;
-        const adultNum = document.getElementById('survey-adults').value;
-        const keyword = document.getElementById('survey-keyword').value || "特になし";
+    function changeNode(type, btn) {
+        // 今回は「宿泊先を探す」単一のため、見た目の固定のみ
+    }
 
+    // 📋 初回のアンケート送信
+    function submitSurvey() {
+        const keyword = document.getElementById('survey-keyword').value.trim();
+        const checkin = document.getElementById('survey-checkin').value;
+        const nights = document.getElementById('survey-nights').value;
+
+        if (!keyword) {
+            alert('目的地・キーワードを入力してください。');
+            return;
+        }
+
+        // Difyに渡す最初のプロンプトを「場所・日付・泊数」をまとめた文章として自動生成
+        const promptQuery = `【新規旅行相談】目的地：${keyword}、チェックイン日：${checkin}、宿泊日数：${nights}泊。この条件に合うおすすめのホテルを楽天トラベルで検索して提案してください。`;
+
+        // 画面をチャットUIに切り替える
         document.getElementById('survey-container').style.display = 'none';
-        document.getElementById('dify-chatbot-container').style.display = 'block';
-        appendMessage('system', 'コンシェルジュが条件を確認しています。少々お待ちください...');
+        document.getElementById('chat-container').style.display = 'block';
 
-        const systemJson = JSON.stringify({
-            NODE: currentTargetNode,
-            CHECKIN: checkinDate,
-            ADULTS: parseInt(adultNum, 10),
-            KEYWORD: keyword,
-            NIGHTS: 1
-        });
-        const initialQuery = `[SYSTEM_DATA]${systemJson}[/SYSTEM_DATA]上記の条件に合う最適な提案をお願いします。`;
+        appendMessage('user', `以下の条件で探してください：\n・目的地：${keyword}\n・日程：${checkin} から ${nights}泊`);
+        showSystemMessage('AIコンシェルジュが楽天トラベルで空室をお調べしています。少々お待ちください...');
 
         fetch(VERCEL_SERVER_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                query: initialQuery,
-                conversation_id: "" 
+                query: promptQuery, // まとめたプロンプトを送信
+                conversation_id: ''
             })
         })
-        .then(async res => {
-            // 💡 400エラーが起きた際、Vercelが返してきたエラー文をそのまま読み取るロジックに強化
-            if (!res.ok) {
-                const errorData = await res.json().catch(() => ({}));
-                console.error('【重要】Difyからのエラー詳細:', errorData);
-                throw new Error('Dify API Rejected');
-            }
+        .then(res => {
+            if (!res.ok) throw new Error('Dify API Rejected');
             return res.json();
         })
         .then(data => {
-            clearSystemMessage(); 
-            if (window.marked && data.answer) {
-                appendMessage('ai', marked.parse(data.answer));
-            } else {
-                appendMessage('ai', data.answer || "回答を取得できませんでした。");
-            }
-            currentConversationId = data.conversation_id; 
+            clearSystemMessage();
+            currentConversationId = data.conversation_id || '';
+            
+            // MarkdownをHTMLにパースして表示
+            const htmlAnswer = marked.parse(data.answer || '返答がありませんでした。');
+            appendMessage('assistant', htmlAnswer);
         })
         .catch(err => {
             console.error(err);
             clearSystemMessage();
-            appendMessage('system', 'エラーが発生しました。コンソール(F12)の「Difyからのエラー詳細」を確認してください。');
+            appendMessage('system', 'エラーが発生し、宿泊情報を取得できませんでした。設定をご確認ください。');
         });
     }
 
+    // 💬 2回目以降の追加チャット送信
     function sendAdditionalMessage() {
         const inputEl = document.getElementById('chat-input');
-        const userText = inputEl.value.trim();
-        if (!userText) return;
+        const text = inputEl.value.trim();
+        if (!text) return;
 
-        appendMessage('user', userText);
-        inputEl.value = ""; 
-        appendMessage('system', 'コンシェルジュが回答を考えています...');
+        inputEl.value = '';
+        appendMessage('user', text);
+        showSystemMessage('コンシェルジュが回答を考えています...');
 
         fetch(VERCEL_SERVER_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                query: userText,
-                conversation_id: currentConversationId 
+                query: text,
+                conversation_id: currentConversationId
             })
         })
         .then(res => {
@@ -156,11 +137,8 @@
         })
         .then(data => {
             clearSystemMessage();
-            if (window.marked && data.answer) {
-                appendMessage('ai', marked.parse(data.answer));
-            } else {
-                appendMessage('ai', data.answer);
-            }
+            const htmlAnswer = marked.parse(data.answer || '');
+            appendMessage('assistant', htmlAnswer);
         })
         .catch(err => {
             console.error(err);
@@ -175,7 +153,7 @@
         let msgHtml = "";
 
         if (sender === 'system') {
-            msgHtml = `<div class="msg-system" style="text-align:center; color:#64748b; font-size:0.9rem; margin:10px 0; font-style:italic;">${text}</div>`;
+            msgHtml = `<div class=\"msg-system\" style=\"text-align:center; color:#64748b; font-size:0.9rem; margin:10px 0; font-style:italic;\">${text}</div>`;
         } else {
             const isUser = (sender === 'user');
             msgHtml = `
@@ -191,10 +169,24 @@
         }
         
         timeline.insertAdjacentHTML('beforeend', msgHtml);
-        timeline.scrollTop = timeline.scrollHeight; 
+        timeline.scrollTop = timeline.scrollHeight;
+    }
+
+    function showSystemMessage(text) {
+        clearSystemMessage();
+        const timeline = document.getElementById('chat-timeline');
+        if (!timeline) return;
+        const loadingHtml = `
+            <div id="sys-loading-msg" style="text-align:center; color:#64748b; font-size:0.9rem; margin:10px 0; display:flex; align-items:center; justify-content:center; gap:8px;">
+                <i class="fa-solid fa-circle-notch fa-spin" style="color:#10b981;"></i>
+                <span>${text}</span>
+            </div>`;
+        timeline.insertAdjacentHTML('beforeend', loadingHtml);
+        timeline.scrollTop = timeline.scrollHeight;
     }
 
     function clearSystemMessage() {
-        document.querySelectorAll('.msg-system').forEach(el => el.remove());
+        const loader = document.getElementById('sys-loading-msg');
+        if (loader) loader.remove();
     }
 </script>
