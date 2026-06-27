@@ -53,16 +53,12 @@
 </div>
 
 <script>
-    // 現在選択されているノード（初期値はホテル）
     let currentTargetNode = 'HOTEL';
-    
-    // 会話の文脈を維持するための変数（Difyから返ってきたセッションIDを保存）
     let currentConversationId = ""; 
 
-    // 🚀 あなたのVercel中継サーバーのURL
+    // 🚀 Vercel中継サーバーのURL
     const VERCEL_SERVER_URL = 'https://dify-backend-bice.vercel.app/api/chat';
 
-    // 今日の日付を初期値として設定する処理
     (function setInitialDate() {
         const today = new Date();
         const yyyy = today.getFullYear();
@@ -72,53 +68,47 @@
         if (dateInput) dateInput.value = `${yyyy}-${mm}-${dd}`;
     })();
 
-    // タブ（宿泊か観光か）を切り替える関数
     function changeNode(nodeType, element) {
         currentTargetNode = nodeType;
-        
-        // 全ボタンのスタイルをリセット
         document.querySelectorAll('.survey-btn').forEach(btn => {
             btn.style.border = '1px solid #cbd5e1';
             btn.style.background = '#ffffff';
             btn.style.color = '#64748b';
             btn.classList.remove('node-active');
         });
-
-        // 選択されたボタンをアクティブ化
         element.style.border = '2px solid #10b981';
         element.style.background = '#ecfdf5';
         element.style.color = '#047857';
         element.classList.add('node-active');
 
-        // 観光を選んだ場合はホテルの詳細入力を隠す
         const hotelForm = document.getElementById('hotel-form-group');
         if (hotelForm) {
             hotelForm.style.display = (nodeType === 'HOTEL') ? 'block' : 'none';
         }
     }
 
-    // チャット開始メインロジック
     function startAIChat() {
         const checkinDate = document.getElementById('survey-date').value;
         const adultNum = document.getElementById('survey-adults').value;
         const keyword = document.getElementById('survey-keyword').value;
 
-        // アンケートを隠してチャット用コンテナを表示
         document.getElementById('survey-container').style.display = 'none';
         document.getElementById('dify-chatbot-container').style.display = 'block';
 
-        // タイムラインに最初の「考え中」を表示
         appendMessage('system', 'コンシェルジュが条件を確認しています。少々お待ちください...');
 
-        // 初回動作用のプロンプト（トリガーメッセージ）の作成
-        let initialQuery = "";
-        if (currentTargetNode === 'HOTEL') {
-            initialQuery = `以下の条件で宿泊先を探してください。【チェックイン】:${checkinDate} 【人数】:${adultNum}人 【こだわり】:${keyword || "特になし"}`;
-        } else {
-            initialQuery = "周辺のおすすめ観光スポットやグルメ情報を教えてください。";
-        }
+        // 💡 Difyの質問分類器とパラメータ抽出ノードに100%合致する[SYSTEM_DATA]形式で組み立て
+        let initialQuery = `[SYSTEM_DATA]
+{
+  "NODE": "${currentTargetNode}",
+  "CHECKIN": "${checkinDate}",
+  "ADULTS": ${adultNum},
+  "KEYWORD": "${keyword || '特になし'}",
+  "NIGHTS": 1
+}
+[/SYSTEM_DATA]
+上記の条件に合う最適な宿泊先や情報を提案してください。`;
 
-        // Vercelの中継サーバー（API）へ送信
         fetch(VERCEL_SERVER_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -127,7 +117,7 @@
                 adults: adultNum,
                 keyword: keyword,
                 query: initialQuery,
-                conversation_id: "" // 初回なので空
+                conversation_id: "" 
             })
         })
         .then(res => {
@@ -135,45 +125,37 @@
             return res.json();
         })
         .then(data => {
-            clearSystemMessage(); // 「考え中...」を消去
-            
-            // Difyから返ってきたMarkdownテキストをHTMLに変換して表示
+            clearSystemMessage(); 
             if (window.marked && data.answer) {
                 appendMessage('ai', marked.parse(data.answer));
             } else {
                 appendMessage('ai', data.answer || "回答を取得できませんでした。");
             }
-            
-            // 返ってきた会話IDを記憶（これで次回の追加質問がつながる）
             currentConversationId = data.conversation_id; 
         })
         .catch(err => {
             console.error(err);
             clearSystemMessage();
-            appendMessage('system', '通信エラーが発生しました。Vercelの設定やURLが正しいか確認してください。');
+            appendMessage('system', '通信エラーが発生しました。Vercel側のファイル階層や設定を修正してください。');
         });
     }
 
-    // 2回目以降、ユーザーが下の入力欄から追加で質問したときの処理
     function sendAdditionalMessage() {
         const inputEl = document.getElementById('chat-input');
         const userText = inputEl.value.trim();
         if (!userText) return;
 
-        // ユーザーの発言を画面に吹き出しとして追加
         appendMessage('user', userText);
-        inputEl.value = ""; // 入力欄をクリア
+        inputEl.value = ""; 
 
-        // 「考え中...」を表示
         appendMessage('system', 'コンシェルジュが回答を考えています...');
 
-        // 2回目以降の通信（記録しておいた会話IDを渡すことで、文脈を維持する）
         fetch(VERCEL_SERVER_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 query: userText,
-                conversation_id: currentConversationId // これが超重要です！
+                conversation_id: currentConversationId 
             })
         })
         .then(res => {
@@ -195,11 +177,9 @@
         });
     }
 
-    // タイムラインにメッセージの吹き出しを追加する共通ヘルパー関数
     function appendMessage(sender, text) {
         const timeline = document.getElementById('chat-timeline');
         if (!timeline) return;
-        
         let msgHtml = "";
 
         if (sender === 'system') {
@@ -219,10 +199,9 @@
         }
         
         timeline.insertAdjacentHTML('beforeend', msgHtml);
-        timeline.scrollTop = timeline.scrollHeight; // 自動で最下部へスクロール
+        timeline.scrollTop = timeline.scrollHeight; 
     }
 
-    // ローディング中などのシステムメッセージを一掃する関数
     function clearSystemMessage() {
         document.querySelectorAll('.msg-system').forEach(el => el.remove());
     }
