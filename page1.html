@@ -41,25 +41,19 @@
     </div>
 
     <div id="dify-chatbot-container" style="display:none; width:100%;">
-        <div id="chat-timeline" style="height: 480px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; background: #f8fafc; margin-bottom: 15px; box-sizing: border-box;">
-            </div>
-
+        <div id="chat-timeline" style="height: 480px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; background: #f8fafc; margin-bottom: 15px; box-sizing: border-box;"></div>
         <div style="display: flex; gap: 10px; align-items: center;">
             <input type="text" id="chat-input" placeholder="コンシェルジュに追加の質問をする..." style="flex: 1; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1rem; box-sizing: border-box;" onkeydown="if(event.key==='Enter') sendAdditionalMessage()">
             <button type="button" onclick="sendAdditionalMessage()" style="padding: 12px 24px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; white-space: nowrap;">送信</button>
         </div>
     </div>
-
 </div>
 
 <script>
     let currentTargetNode = 'HOTEL';
     let currentConversationId = ""; 
-
-    // 🚀 あなたのVercel中継サーバーのURL
     const VERCEL_SERVER_URL = 'https://dify-backend-bice.vercel.app/api/chat';
 
-    // 今日の日付を初期値として設定する処理
     (function setInitialDate() {
         const today = new Date();
         const yyyy = today.getFullYear();
@@ -69,17 +63,14 @@
         if (dateInput) dateInput.value = `${yyyy}-${mm}-${dd}`;
     })();
 
-    // タブ（宿泊か観光か）を切り替える関数
     function changeNode(nodeType, element) {
         currentTargetNode = nodeType;
-        
         document.querySelectorAll('.survey-btn').forEach(btn => {
             btn.style.border = '1px solid #cbd5e1';
             btn.style.background = '#ffffff';
             btn.style.color = '#64748b';
             btn.classList.remove('node-active');
         });
-
         element.style.border = '2px solid #10b981';
         element.style.background = '#ecfdf5';
         element.style.color = '#047857';
@@ -91,32 +82,25 @@
         }
     }
 
-    // チャット開始メインロジック
     function startAIChat() {
         const checkinDate = document.getElementById('survey-date').value;
         const adultNum = document.getElementById('survey-adults').value;
-        const keyword = document.getElementById('survey-keyword').value;
+        const keyword = document.getElementById('survey-keyword').value || "特になし";
 
-        // アンケートを隠してチャット用コンテナを表示
         document.getElementById('survey-container').style.display = 'none';
         document.getElementById('dify-chatbot-container').style.display = 'block';
-
-        // タイムラインに最初の「考え中」を表示
         appendMessage('system', 'コンシェルジュが条件を確認しています。少々お待ちください...');
 
-        // Difyの「質問分類器」に合わせた厳格な[SYSTEM_DATA]形式を組み立て
-        let initialQuery = `[SYSTEM_DATA]
-{
-  "NODE": "${currentTargetNode}",
-  "CHECKIN": "${checkinDate}",
-  "ADULTS": ${adultNum},
-  "KEYWORD": "${keyword || '特になし'}",
-  "NIGHTS": 1
-}
-[/SYSTEM_DATA]
-上記の条件に合う最適なプランを提案してください。`;
+        // 💡 400エラー徹底対策：改行や不要な空白を完全排除した1行のテキストとして[SYSTEM_DATA]をDifyに渡します
+        const systemJson = JSON.stringify({
+            NODE: currentTargetNode,
+            CHECKIN: checkinDate,
+            ADULTS: parseInt(adultNum, 10),
+            KEYWORD: keyword,
+            NIGHTS: 1
+        });
+        const initialQuery = `[SYSTEM_DATA]${systemJson}[/SYSTEM_DATA]上記の条件に合う最適な提案をお願いします。`;
 
-        // 💡 400エラー対策：DifyのStartノードの初期仕様に合わせ、queryとconversation_idだけを送信
         fetch(VERCEL_SERVER_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -130,25 +114,21 @@
             return res.json();
         })
         .then(data => {
-            clearSystemMessage(); // 「考え中...」を消去
-            
+            clearSystemMessage(); 
             if (window.marked && data.answer) {
                 appendMessage('ai', marked.parse(data.answer));
             } else {
                 appendMessage('ai', data.answer || "回答を取得できませんでした。");
             }
-            
-            // 返ってきた会話IDを記憶して次回に繋げる
             currentConversationId = data.conversation_id; 
         })
         .catch(err => {
             console.error(err);
             clearSystemMessage();
-            appendMessage('system', '通信エラーが発生しました。Dify側のAPIキーやクレジット、またはVercel設定を確認してください。');
+            appendMessage('system', 'エラーが発生しました。現在Difyが応答を拒否しています。');
         });
     }
 
-    // 2回目以降の追加質問処理
     function sendAdditionalMessage() {
         const inputEl = document.getElementById('chat-input');
         const userText = inputEl.value.trim();
@@ -156,7 +136,6 @@
 
         appendMessage('user', userText);
         inputEl.value = ""; 
-
         appendMessage('system', 'コンシェルジュが回答を考えています...');
 
         fetch(VERCEL_SERVER_URL, {
@@ -186,11 +165,9 @@
         });
     }
 
-    // メッセージ追加共通関数
     function appendMessage(sender, text) {
         const timeline = document.getElementById('chat-timeline');
         if (!timeline) return;
-        
         let msgHtml = "";
 
         if (sender === 'system') {
