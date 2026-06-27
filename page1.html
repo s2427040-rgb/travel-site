@@ -77,7 +77,7 @@
     function submitSurvey() {
         const keyword = document.getElementById('survey-keyword').value.trim();
         const checkin = document.getElementById('survey-checkin').value;
-        const adults = document.getElementById('survey-adults').value; // 人数の取得
+        const adults = document.getElementById('survey-adults').value;
         const nights = document.getElementById('survey-nights').value;
 
         if (!keyword) {
@@ -85,21 +85,28 @@
             return;
         }
 
-        // プロンプトの組み立てに「大人の人数」もしっかり含めました
-        const promptQuery = `【新規旅行相談】目的地：${keyword}、チェックイン日：${checkin}、大人の人数：${adults}名、宿泊日数：${nights}泊。この条件に合うおすすめのホテルを楽天トラベルで検索して提案してください。`;
+        // チャット画面上に表示する見栄え用テキスト
+        const userViewText = `以下の条件で探してください：\n・目的地：${keyword}\n・日程：${checkin} から ${nights}泊\n・人数：大人 ${adults}名`;
 
         document.getElementById('survey-container').style.display = 'none';
         document.getElementById('chat-container').style.display = 'block';
 
-        appendMessage('user', `以下の条件で探してください：\n・目的地：${keyword}\n・日程：${checkin} から ${nights}泊\n・人数：大人 ${adults}名`);
+        appendMessage('user', userViewText);
         showSystemMessage('AIコンシェルジュが楽天トラベルで空室をお調べしています。少々お待ちください...');
 
+        // 💡 修正ポイント：query自体に直接キーワードを載せつつ、inputsにも全データを安全に分割して送信します
         fetch(VERCEL_SERVER_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                query: promptQuery,
-                conversation_id: ''
+                query: keyword, // Difyがキーワードとして最も認識しやすい形
+                conversation_id: '',
+                inputs: {
+                    "keyword": keyword,
+                    "checkInDate": checkin,
+                    "stayNights": nights,
+                    "adultNum": adults
+                }
             })
         })
         .then(res => {
