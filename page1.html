@@ -85,7 +85,7 @@
             return;
         }
 
-        // チャット画面上に表示する見栄え用テキスト
+        // チャット画面（ユーザーの吹き出し）に見せるスマートなテキスト
         const userViewText = `以下の条件で探してください：\n・目的地：${keyword}\n・日程：${checkin} から ${nights}泊\n・人数：大人 ${adults}名`;
 
         document.getElementById('survey-container').style.display = 'none';
@@ -94,12 +94,14 @@
         appendMessage('user', userViewText);
         showSystemMessage('AIコンシェルジュが楽天トラベルで空室をお調べしています。少々お待ちください...');
 
-        // 💡 修正ポイント：query自体に直接キーワードを載せつつ、inputsにも全データを安全に分割して送信します
+        // 💡 対策2のキモ：Difyの分岐誤作動を完全に防ぐため、明示的にホテル検索を促す文章を主軸（query）にします
+        const clearIntentQuery = `${keyword}のホテルを最優先で検索して提案してください。グルメ情報や観光ルートではなく、楽天トラベルの宿泊施設情報を探しています。`;
+
         fetch(VERCEL_SERVER_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                query: keyword, // Difyがキーワードとして最も認識しやすい形
+                query: clearIntentQuery, // AIへのホテル検索ルートへの明確な誘導指示文
                 conversation_id: '',
                 inputs: {
                     "keyword": keyword,
