@@ -1,3 +1,5 @@
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
 <h2 style="margin-bottom: 15px; font-family: 'Noto Sans JP', sans-serif; color: #1e293b;">宿泊先・観光を探す (AIコンシェルジュ)</h2>
 
 <div style="width: 100%; max-width: 850px; margin: 0 auto 20px auto; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); background: #ffffff; padding: 25px; box-sizing: border-box;">
@@ -57,7 +59,7 @@
     // 会話の文脈を維持するための変数（Difyから返ってきたセッションIDを保存）
     let currentConversationId = ""; 
 
-    // 🚀【重要】ここにVercelで確認したあなたのURLを貼り付けてください（末尾の /api/chat は残す）
+    // 🚀 あなたのVercel中継サーバーのURL
     const VERCEL_SERVER_URL = 'https://dify-backend-bice.vercel.app/api/chat';
 
     // 今日の日付を初期値として設定する処理
@@ -90,7 +92,9 @@
 
         // 観光を選んだ場合はホテルの詳細入力を隠す
         const hotelForm = document.getElementById('hotel-form-group');
-        hotelForm.style.display = (nodeType === 'HOTEL') ? 'block' : 'none';
+        if (hotelForm) {
+            hotelForm.style.display = (nodeType === 'HOTEL') ? 'block' : 'none';
+        }
     }
 
     // チャット開始メインロジック
@@ -133,8 +137,12 @@
         .then(data => {
             clearSystemMessage(); // 「考え中...」を消去
             
-            // Difyから返ってきたMarkdownテキストを、index.htmlで読み込まれているmarked.jsでHTMLに変換して表示
-            appendMessage('ai', marked.parse(data.answer));
+            // Difyから返ってきたMarkdownテキストをHTMLに変換して表示
+            if (window.marked && data.answer) {
+                appendMessage('ai', marked.parse(data.answer));
+            } else {
+                appendMessage('ai', data.answer || "回答を取得できませんでした。");
+            }
             
             // 返ってきた会話IDを記憶（これで次回の追加質問がつながる）
             currentConversationId = data.conversation_id; 
@@ -174,7 +182,11 @@
         })
         .then(data => {
             clearSystemMessage();
-            appendMessage('ai', marked.parse(data.answer));
+            if (window.marked && data.answer) {
+                appendMessage('ai', marked.parse(data.answer));
+            } else {
+                appendMessage('ai', data.answer);
+            }
         })
         .catch(err => {
             console.error(err);
@@ -186,6 +198,8 @@
     // タイムラインにメッセージの吹き出しを追加する共通ヘルパー関数
     function appendMessage(sender, text) {
         const timeline = document.getElementById('chat-timeline');
+        if (!timeline) return;
+        
         let msgHtml = "";
 
         if (sender === 'system') {
