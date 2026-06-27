@@ -91,7 +91,6 @@
         document.getElementById('dify-chatbot-container').style.display = 'block';
         appendMessage('system', 'コンシェルジュが条件を確認しています。少々お待ちください...');
 
-        // 💡 400エラー徹底対策：改行や不要な空白を完全排除した1行のテキストとして[SYSTEM_DATA]をDifyに渡します
         const systemJson = JSON.stringify({
             NODE: currentTargetNode,
             CHECKIN: checkinDate,
@@ -109,8 +108,13 @@
                 conversation_id: "" 
             })
         })
-        .then(res => {
-            if (!res.ok) throw new Error('Network response was not ok');
+        .then(async res => {
+            // 💡 400エラーが起きた際、Vercelが返してきたエラー文をそのまま読み取るロジックに強化
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({}));
+                console.error('【重要】Difyからのエラー詳細:', errorData);
+                throw new Error('Dify API Rejected');
+            }
             return res.json();
         })
         .then(data => {
@@ -125,7 +129,7 @@
         .catch(err => {
             console.error(err);
             clearSystemMessage();
-            appendMessage('system', 'エラーが発生しました。現在Difyが応答を拒否しています。');
+            appendMessage('system', 'エラーが発生しました。コンソール(F12)の「Difyからのエラー詳細」を確認してください。');
         });
     }
 
