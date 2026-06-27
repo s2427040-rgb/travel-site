@@ -94,17 +94,17 @@
         appendMessage('user', userViewText);
         showSystemMessage('AIコンシェルジュが楽天トラベルで空室をお調べしています。少々お待ちください...');
 
-        // 💡 対策2のキモ：Difyの分岐誤作動を完全に防ぐため、明示的にホテル検索を促す文章を主軸（query）にします
+        // 💡 対策2：Difyの分岐誤作動を完全に防ぐため、明示的にホテル検索を促す文章を主軸（query）にします
         const clearIntentQuery = `${keyword}のホテルを最優先で検索して提案してください。グルメ情報や観光ルートではなく、楽天トラベルの宿泊施設情報を探しています。`;
 
         fetch(VERCEL_SERVER_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                query: clearIntentQuery, // AIへのホテル検索ルートへの明確な誘導指示文
+                query: clearIntentQuery, // 観光・グルメへの誤分岐を防ぐための強力な命令指示
                 conversation_id: '',
                 inputs: {
-                    "keyword": keyword,
+                    "keyword": keyword,      // Difyの「開始ノード」で設定されている変数に値を直接流し込む
                     "checkInDate": checkin,
                     "stayNights": nights,
                     "adultNum": adults
