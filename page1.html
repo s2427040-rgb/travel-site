@@ -8,11 +8,6 @@
         <h3 style="margin-top:0; color:#10b981; font-family: 'Noto Sans JP', sans-serif;">まずはご希望の条件を選択してください</h3>
         
         <div style="margin-bottom: 20px;">
-            <label style="display:block; font-weight:bold; margin-bottom:8px; color:#4b5563;">目的地・キーワード <span style="color:red; font-size:0.8rem;">(必須)</span></label>
-            <input type="text" id="survey-keyword" placeholder="例：浅草駅、東京ディズニーランド、京都駅周辺" style="width:100%; padding:12px; border:2px solid #cbd5e1; border-radius:8px; font-size:1rem; box-sizing:border-box; outline:none; transition:border-color 0.2s;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#cbd5e1'">
-        </div>
-
-        <div style="margin-bottom: 20px;">
             <label style="display:block; font-weight:bold; margin-bottom:8px; color:#4b5563;">知りたい情報</label>
             <div style="display:flex; gap:10px;">
                 <button type="button" class="survey-btn node-active" onclick="changeNode('HOTEL', this)" style="padding:10px 20px; border:2px solid #10b981; background:#ecfdf5; color:#047857; border-radius:8px; cursor:pointer; font-weight:bold;">宿泊先を探す</button>
@@ -20,13 +15,18 @@
         </div>
 
         <div style="margin-bottom: 20px;">
+            <label style="display:block; font-weight:bold; margin-bottom:8px; color:#4b5563;">目的地・キーワード <span style="color:red; font-size:0.8rem;">(必須)</span></label>
+            <input type="text" id="survey-keyword" placeholder="例：浅草駅、京都駅周辺、博多" style="width:100%; padding:12px; border:2px solid #cbd5e1; border-radius:8px; font-size:1rem; box-sizing:border-box; outline:none; transition:border-color 0.2s;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#cbd5e1'">
+        </div>
+
+        <div style="margin-bottom: 20px;">
             <label style="display:block; font-weight:bold; margin-bottom:8px; color:#4b5563;">チェックイン日</label>
-            <input type="date" id="survey-checkin" style="padding:10px; border:2px solid #cbd5e1; border-radius:8px; font-size:1rem; color:#4b5563;">
+            <input type="date" id="survey-checkin" style="padding:10px; border:2px solid #cbd5e1; border-radius:8px; font-size:1rem; color:#4b5563; width: 100%; box-sizing: border-box;">
         </div>
 
         <div style="margin-bottom: 25px;">
             <label style="display:block; font-weight:bold; margin-bottom:8px; color:#4b5563;">宿泊日数</label>
-            <select id="survey-nights" style="padding:10px; border:2px solid #cbd5e1; border-radius:8px; font-size:1rem; color:#4b5563; background:white;">
+            <select id="survey-nights" style="padding:10px; border:2px solid #cbd5e1; border-radius:8px; font-size:1rem; color:#4b5563; background:white; width: 100%; box-sizing: border-box;">
                 <option value="1">1泊</option>
                 <option value="2">2泊</option>
                 <option value="3">3泊</option>
@@ -53,7 +53,7 @@
     const VERCEL_SERVER_URL = 'https://dify-backend-bice.vercel.app/api/chat';
     let currentConversationId = '';
 
-    // 今日以降の日付しか選べないように制限＆初期値をセット
+    // 今日以降の日付しか選れないように制限＆初期値をセット
     const today = new Date().toISOString().split('T')[0];
     const checkinInput = document.getElementById('survey-checkin');
     if (checkinInput) {
@@ -61,9 +61,7 @@
         checkinInput.value = today;
     }
 
-    function changeNode(type, btn) {
-        // 今回は「宿泊先を探す」単一のため、見た目の固定のみ
-    }
+    function changeNode(type, btn) {}
 
     // 📋 初回のアンケート送信
     function submitSurvey() {
@@ -76,10 +74,9 @@
             return;
         }
 
-        // Difyに渡す最初のプロンプトを「場所・日付・泊数」をまとめた文章として自動生成
+        // プロンプトの組み立て
         const promptQuery = `【新規旅行相談】目的地：${keyword}、チェックイン日：${checkin}、宿泊日数：${nights}泊。この条件に合うおすすめのホテルを楽天トラベルで検索して提案してください。`;
 
-        // 画面をチャットUIに切り替える
         document.getElementById('survey-container').style.display = 'none';
         document.getElementById('chat-container').style.display = 'block';
 
@@ -90,7 +87,7 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                query: promptQuery, // まとめたプロンプトを送信
+                query: promptQuery,
                 conversation_id: ''
             })
         })
@@ -101,15 +98,13 @@
         .then(data => {
             clearSystemMessage();
             currentConversationId = data.conversation_id || '';
-            
-            // MarkdownをHTMLにパースして表示
             const htmlAnswer = marked.parse(data.answer || '返答がありませんでした。');
             appendMessage('assistant', htmlAnswer);
         })
         .catch(err => {
             console.error(err);
             clearSystemMessage();
-            appendMessage('system', 'エラーが発生し、宿泊情報を取得できませんでした。設定をご確認ください。');
+            appendMessage('system', 'エラーが発生し、宿泊情報を取得できませんでした。');
         });
     }
 
@@ -153,7 +148,7 @@
         let msgHtml = "";
 
         if (sender === 'system') {
-            msgHtml = `<div class=\"msg-system\" style=\"text-align:center; color:#64748b; font-size:0.9rem; margin:10px 0; font-style:italic;\">${text}</div>`;
+            msgHtml = `<div class="msg-system" style="text-align:center; color:#64748b; font-size:0.9rem; margin:10px 0; font-style:italic;">${text}</div>`;
         } else {
             const isUser = (sender === 'user');
             msgHtml = `
