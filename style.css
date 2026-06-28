@@ -151,7 +151,6 @@ footer {
     margin-bottom: 25px;
     z-index: 1;
 }
-
 /* --- 6. ご意見箱 (feedback.html) 用スタイル --- */
 
 /* フッター内のボタンをテキストリンク風に見せる */
@@ -169,100 +168,4 @@ footer {
 .feedback-btn:hover {
     color: var(--primary-color);
     text-shadow: 0 0 1px rgba(16, 185, 129, 0.2);
-}
-
-
-/* ==========================================================================
-   ✨ 【追加】トラベルローディングアニメーションのスタイル
-   ========================================================================== */
-.travel-loading-container {
-    text-align: center;
-    color: #64748b;
-    font-size: 0.95rem;
-    margin: 15px 0;
-    padding: 20px;
-    background: #f8fafc;
-    border-radius: 12px;
-    border: 1px dashed #cbd5e1;
-    overflow: hidden; /* 枠外にはみ出たアイコンの非表示用 */
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
-}
-
-/* アニメーションが走るレール（横線） */
-.travel-animation-track {
-    position: relative;
-    width: 100%;
-    height: 40px;
-    margin-bottom: 12px;
-    border-bottom: 2px dashed #e2e8f0;
-}
-
-/* 乗り物アイコンの基本形状 */
-.travel-icon {
-    position: absolute;
-    bottom: 5px;
-    font-size: 1.6rem;
-}
-
-/* ✈️ 飛行機：3秒で左から右へ、途中で少し上昇する */
-.plane-anim {
-    animation: flyAcross 3s linear infinite;
-    color: #10b981; /* 緑色 */
-}
-
-/* 🚄 電車：4秒でまっすぐ進む。飛行機から少し遅れて発車 */
-.train-anim {
-    animation: driveAcross 4s linear infinite;
-    animation-delay: 1.5s; 
-    color: #3b82f6; /* 青色 */
-}
-
-/* 文字とくるくるアイコンの並び */
-.travel-loading-text {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    font-weight: 700;
-    color: #334155;
-}
-
-/* スピナー自体の色微調整 */
-.travel-loading-text .fa-spin {
-    color: #10b981;
-}
-
-/* --- アニメーション軌道の定義 --- */
-
-/* 飛行機：浮き上がりながら飛び去る */
-@keyframes flyAcross {
-    0% {
-        left: -10%;
-        transform: translateY(0) rotate(-5deg);
-        opacity: 0;
-    }
-    5% { opacity: 1; }
-    50% {
-        transform: translateY(-15px) rotate(0deg);
-    }
-    95% { opacity: 1; }
-    100% {
-        left: 110%;
-        transform: translateY(0) rotate(5deg);
-        opacity: 0;
-    }
-}
-
-/* 電車：滑らかに直進する */
-@keyframes driveAcross {
-    0% {
-        left: -10%;
-        opacity: 0;
-    }
-    5% { opacity: 1; }
-    95% { opacity: 1; }
-    100% {
-        left: 110%;
-        opacity: 0;
-    }
 }
