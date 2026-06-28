@@ -1,3 +1,4 @@
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
 <h2 style="margin-bottom: 15px; font-family: 'Noto Sans JP', sans-serif; color: #1e293b;">宿泊先・観光を探す (AIコンシェルジュ)</h2>
@@ -5,7 +6,7 @@
 <div style="width: 100%; max-width: 850px; margin: 0 auto 20px auto; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); background: #ffffff; padding: 25px; box-sizing: border-box;">
     
     <div id="survey-container">
-        <h3 style="margin-top:0; color:#10b981; font-family: 'Noto Sans JP', sans-serif;">まずはご希望の条件を選択してください</h3>
+        <h3 style="margin-top:0; color:#10b981; font-family: 'Noto Sans JP', sans-serif;">まずはご希望 of 条件を選択してください</h3>
         
         <div style="margin-bottom: 20px;">
             <label style="display:block; font-weight:bold; margin-bottom:8px; color:#4b5563;">知りたい情報</label>
@@ -155,7 +156,6 @@
         const timeline = document.getElementById('chat-timeline');
         if (!timeline) return;
         
-        // 🚄 飛行機と電車が走り抜けるカスタムローディングHTML
         const loadingHtml = `
             <div id="sys-loading-msg" class="travel-loading-container">
                 <div class="travel-animation-track">
