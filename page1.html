@@ -1,4 +1,3 @@
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
 <h2 style="margin-bottom: 15px; font-family: 'Noto Sans JP', sans-serif; color: #1e293b;">宿泊先・観光を探す (AIコンシェルジュ)</h2>
@@ -10,138 +9,175 @@
         
         <div style="margin-bottom: 20px;">
             <label style="display:block; font-weight:bold; margin-bottom:8px; color:#4b5563;">知りたい情報</label>
-            <div style="display:flex; gap:12px; width:100%;">
-                <button type="button" class="survey-btn node-active" onclick="changeNode('HOTEL', this)" style="flex:1; padding:14px 10px; border:2px solid #10b981; background:#ecfdf5; color:#047857; border-radius:8px; cursor:pointer; font-weight:bold; transition:all 0.2s; white-space:nowrap; font-size:0.95rem;">🏨 宿泊先（ホテル・旅館）</button>
-                <button type="button" class="survey-btn" onclick="changeNode('SPOT', this)" style="flex:1; padding:14px 10px; border:1px solid #cbd5e1; background:#ffffff; color:#4b5563; border-radius:8px; cursor:pointer; font-weight:bold; transition:all 0.2s; white-space:nowrap; font-size:0.95rem;">🗺️ 観光スポット・グルメ</button>
+            <div style="display:flex; gap:10px;">
+                <button type="button" class="survey-btn node-active" onclick="changeNode('HOTEL', this)" style="padding:10px 20px; border:2px solid #10b981; background:#ecfdf5; color:#047857; border-radius:8px; cursor:pointer; font-weight:bold;">宿泊先を探す</button>
             </div>
         </div>
 
         <div style="margin-bottom: 20px;">
-            <label style="display:block; font-weight:bold; margin-bottom:8px; color:#4b5563;">目的地（エリア）</label>
-            <input type="text" id="survey-area" placeholder="例：浅草、上野駅周辺、京都" style="width:100%; padding:12px; border:1px solid #cbd5e1; border-radius:8px; font-size:1rem; box-sizing:border-box;">
+            <label style="display:block; font-weight:bold; margin-bottom:8px; color:#4b5563;">目的地・キーワード <span style="color:red; font-size:0.8rem;">(必須)</span></label>
+            <input type="text" id="survey-keyword" placeholder="例：浅草駅、京都駅周辺、博多" style="width:100%; padding:12px; border:2px solid #cbd5e1; border-radius:8px; font-size:1rem; box-sizing:border-box; outline:none; transition:border-color 0.2s;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#cbd5e1'">
         </div>
 
-        <div style="margin-bottom: 25px;">
-            <label style="display:block; font-weight:bold; margin-bottom:8px; color:#4b5563;">予算の目安（1泊1人あたり）</label>
-            <select id="survey-budget" style="width:100%; padding:12px; border:1px solid #cbd5e1; border-radius:8px; font-size:1rem; background:#ffffff;">
-                <option value="指定なし">指定なし</option>
-                <option value="5,000円以下">5,000円以下（格安・ホステル）</option>
-                <option value="5,000円〜10,000円">5,000円〜10,000円（ビジネスホテル標準）</option>
-                <option value="10,000円〜20,000円">10,000円〜20,000円（少しリッチ・観光向け）</option>
-                <option value="20,000円以上">20,000円以上（高級旅館・ホテル）</option>
+        <div style="margin-bottom: 20px;">
+            <label style="display:block; font-weight:bold; margin-bottom:8px; color:#4b5563;">チェックイン日</label>
+            <input type="date" id="survey-checkin" style="padding:10px; border:2px solid #cbd5e1; border-radius:8px; font-size:1rem; color:#4b5563; width: 100%; box-sizing: border-box;">
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <label style="display:block; font-weight:bold; margin-bottom:8px; color:#4b5563;">大人の人数</label>
+            <select id="survey-adults" style="padding:10px; border:2px solid #cbd5e1; border-radius:8px; font-size:1rem; color:#4b5563; background:white; width: 100%; box-sizing: border-box;">
+                <option value="1">1名</option>
+                <option value="2">2名</option>
+                <option value="3">3名</option>
+                <option value="4">4名以上</option>
             </select>
         </div>
 
-        <button onclick="submitSurvey()" style="width:100%; padding:15px; background:#10b981; color:#ffffff; border:none; border-radius:8px; font-size:1.1rem; font-weight:bold; cursor:pointer; box-shadow:0 4px 6px rgba(16,185,129,0.2); transition:background 0.2s;">この条件でAIコンシェルジュに相談する 🚀</button>
+        <div style="margin-bottom: 25px;">
+            <label style="display:block; font-weight:bold; margin-bottom:8px; color:#4b5563;">宿泊日数</label>
+            <select id="survey-nights" style="padding:10px; border:2px solid #cbd5e1; border-radius:8px; font-size:1rem; color:#4b5563; background:white; width: 100%; box-sizing: border-box;">
+                <option value="1">1泊</option>
+                <option value="2">2泊</option>
+                <option value="3">3泊</option>
+                <option value="4">4泊以上</option>
+            </select>
+        </div>
+
+        <button type="button" onclick="submitSurvey()" style="width:100%; padding:14px; background:#10b981; color:white; border:none; border-radius:8px; font-size:1.1rem; font-weight:bold; cursor:pointer; box-shadow:0 4px 6px rgba(16,185,129,0.2); transition:background 0.2s;">
+            <i class="fa-solid fa-paper-plane" style="margin-right:8px;"></i> 相談を始める
+        </button>
     </div>
 
-    <div id="chat-container" style="display:none; margin-top:10px;">
-        <div id="chat-timeline" style="height:400px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px; padding:15px; background:#f8fafc; margin-bottom:15px; display:flex; flex-direction:column; gap:12px;">
-            </div>
-
-        <div style="display:flex; gap:10px;">
-            <input type="text" id="chat-input" placeholder="追加の要望を入力（例：大浴場があるところ、近くの美味しいラーメン屋も教えて）" style="flex:1; padding:12px; border:1px solid #cbd5e1; border-radius:8px; font-size:1rem;" onkeypress="if(event.key==='Enter') sendChatMessage()">
-            <button onclick="sendChatMessage()" style="padding:0 25px; background:#10b981; color:#ffffff; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">送信</button>
+    <div id="chat-container" style="display: none;">
+        <div id="chat-timeline" style="height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; background: #f8fafc; margin-bottom: 15px;"></div>
+        
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="chat-input" placeholder="追加の質問や条件をここに入力..." style="flex: 1; padding: 12px; border: 2px solid #cbd5e1; border-radius: 8px; font-size: 1rem;">
+            <button onclick="sendAdditionalMessage()" style="padding: 0 20px; background: #10b981; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">送信</button>
         </div>
     </div>
 </div>
 
 <script>
-    let current_conversation_id = "";
-    let selectedNode = "HOTEL";
+    const VERCEL_SERVER_URL = 'https://dify-backend-bice.vercel.app/api/chat';
+    let currentConversationId = '';
 
-    function changeNode(nodeType, element) {
-        selectedNode = nodeType;
-        const buttons = document.querySelectorAll('.survey-btn');
-        buttons.forEach(btn => {
-            btn.classList.remove('node-active');
-            btn.style.border = '1px solid #cbd5e1';
-            btn.style.background = '#ffffff';
-            btn.style.color = '#4b5563';
-        });
-        element.classList.add('node-active');
-        element.style.border = '2px solid #10b981';
-        element.style.background = '#ecfdf5';
-        element.style.color = '#047857';
+    // 今日以降の日付しか選べないように制限＆初期値をセット
+    const today = new Date().toISOString().split('T')[0];
+    const checkinInput = document.getElementById('survey-checkin');
+    if (checkinInput) {
+        checkinInput.min = today;
+        checkinInput.value = today;
     }
 
+    function changeNode(type, btn) {}
+
+    // 📋 初回のアンケート送信
     function submitSurvey() {
-        const area = document.getElementById('survey-area').value.trim();
-        const budget = document.getElementById('survey-budget').value;
-        
-        if (!area) {
-            alert('目的地（エリア）を入力してください。');
+        const keyword = document.getElementById('survey-keyword').value.trim();
+        const checkin = document.getElementById('survey-checkin').value;
+        const adults = document.getElementById('survey-adults').value;
+        const nights = document.getElementById('survey-nights').value;
+
+        if (!keyword) {
+            alert('目的地・キーワードを入力してください。');
             return;
         }
+
+        // チャット画面（ユーザーの吹き出し）に見せるスマートなテキスト
+        const userViewText = `以下の条件で探してください：\n・目的地：${keyword}\n・日程：${checkin} から ${nights}泊\n・人数：大人 ${adults}名`;
 
         document.getElementById('survey-container').style.display = 'none';
         document.getElementById('chat-container').style.display = 'block';
 
-        let infoText = selectedNode === 'HOTEL' ? '宿泊先情報' : '観光・グルメ情報';
-        let initialQuery = `${area}の${infoText}を探しています。予算の目安は ${budget} です。条件にあうおすすめを教えてください。`;
-        
-        executeChatApi(initialQuery);
-    }
+        appendMessage('user', userViewText);
+        showSystemMessage('AIコンシェルジュが楽天トラベルで空室をお調べしています。少々お待ちください...');
 
-    function sendChatMessage() {
-        const input = document.getElementById('chat-input');
-        const query = input.value.trim();
-        if (!query) return;
+        // 💡 対策2：Difyの分岐誤作動を完全に防ぐため、明示的にホテル検索を促す文章を主軸（query）にします
+        const clearIntentQuery = `${keyword}のホテルを最優先で検索して提案してください。グルメ情報や観光ルートではなく、楽天トラベルの宿泊施設情報を探しています。`;
 
-        appendMessage(query, true);
-        input.value = "";
-        
-        executeChatApi(query);
-    }
-
-    async function executeChatApi(userQuery) {
-        showSystemMessage("楽天トラベルで空室をお調べしています...");
-
-        try {
-            const response = await fetch('/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    query: userQuery,
-                    conversation_id: current_conversation_id
-                })
-            });
-
-            if (!response.ok) throw new Error('サーバーエラーが発生しました');
-            const data = await response.json();
-
+        fetch(VERCEL_SERVER_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                query: clearIntentQuery, // 観光・グルメへの誤分岐を防ぐための強力な命令指示
+                conversation_id: '',
+                inputs: {
+                    "keyword": keyword,      // Difyの「開始ノード」で設定されている変数に値を直接流し込む
+                    "checkInDate": checkin,
+                    "stayNights": nights,
+                    "adultNum": adults
+                }
+            })
+        })
+        .then(res => {
+            if (!res.ok) throw new Error('Dify API Rejected');
+            return res.json();
+        })
+        .then(data => {
             clearSystemMessage();
-
-            if (data.answer) {
-                appendMessage(marked.parse(data.answer), false);
-            }
-            if (data.conversation_id) {
-                current_conversation_id = data.conversation_id;
-            }
-
-        } catch (error) {
-            console.error(error);
+            currentConversationId = data.conversation_id || '';
+            const htmlAnswer = marked.parse(data.answer || '返答がありませんでした。');
+            appendMessage('assistant', htmlAnswer);
+        })
+        .catch(err => {
+            console.error(err);
             clearSystemMessage();
-            appendMessage("申し訳ありません。エラーが発生したため、回答を取得できませんでした。", false);
-        }
+            appendMessage('system', 'エラーが発生し、宿泊情報を取得できませんでした。');
+        });
     }
 
-    function appendMessage(text, isUser) {
+    // 💬 2回目以降の追加チャット送信
+    function sendAdditionalMessage() {
+        const inputEl = document.getElementById('chat-input');
+        const text = inputEl.value.trim();
+        if (!text) return;
+
+        inputEl.value = '';
+        appendMessage('user', text);
+        showSystemMessage('コンシェルジュが回答を考えています...');
+
+        fetch(VERCEL_SERVER_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                query: text,
+                conversation_id: currentConversationId
+            })
+        })
+        .then(res => {
+            if (!res.ok) throw new Error('Network response was not ok');
+            return res.json();
+        })
+        .then(data => {
+            clearSystemMessage();
+            const htmlAnswer = marked.parse(data.answer || '');
+            appendMessage('assistant', htmlAnswer);
+        })
+        .catch(err => {
+            console.error(err);
+            clearSystemMessage();
+            appendMessage('system', 'エラーが発生し、回答を取得できませんでした。');
+        });
+    }
+
+    function appendMessage(sender, text) {
         const timeline = document.getElementById('chat-timeline');
         if (!timeline) return;
-        
         let msgHtml = "";
-        if (isUser) {
-            msgHtml = `
-                <div style="text-align: right;">
-                    <div style="display:inline-block; max-width:80%; padding:12px 16px; border-radius:12px; background:#10b981; color:#ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.06); text-align:left; line-height:1.5; font-size:0.95rem;">
-                        ${text}
-                    </div>
-                </div>`;
+
+        if (sender === 'system') {
+            msgHtml = `<div class="msg-system" style="text-align:center; color:#64748b; font-size:0.9rem; margin:10px 0; font-style:italic;">${text}</div>`;
         } else {
+            const isUser = (sender === 'user');
             msgHtml = `
-                <div style="text-align: left;">
-                    <div style="display:inline-block; max-width:80%; padding:12px 16px; border-radius:12px; background:#ffffff; color:#1e293b; box-shadow: 0 2px 6px rgba(0,0,0,0.06); text-align:left; line-height:1.5; font-size:0.95rem;">
+                <div class="msg-${sender}" style="margin-bottom:15px; text-align: ${isUser ? 'right' : 'left'};">
+                    <div style="display:inline-block; max-width:80%; padding:12px 16px; border-radius:12px; 
+                                background:${isUser ? '#10b981' : '#ffffff'}; 
+                                color:${isUser ? '#ffffff' : '#1e293b'}; 
+                                box-shadow: 0 2px 6px rgba(0,0,0,0.06); 
+                                text-align:left; line-height:1.5; font-size:0.95rem;">
                         ${text}
                     </div>
                 </div>`;
@@ -155,25 +191,17 @@
         clearSystemMessage();
         const timeline = document.getElementById('chat-timeline');
         if (!timeline) return;
-        
         const loadingHtml = `
-            <div id="sys-loading-msg" class="travel-loading-container">
-                <div class="travel-animation-track">
-                    <i class="fa-solid fa-plane travel-icon plane-anim"></i>
-                    <i class="fa-solid fa-train-subway travel-icon train-anim"></i>
-                </div>
-                <div class="travel-loading-text">
-                    <i class="fa-solid fa-circle-notch fa-spin"></i>
-                    <span>${text}</span>
-                </div>
+            <div id="sys-loading-msg" style="text-align:center; color:#64748b; font-size:0.9rem; margin:10px 0; display:flex; align-items:center; justify-content:center; gap:8px;">
+                <i class="fa-solid fa-circle-notch fa-spin" style="color:#10b981;"></i>
+                <span>${text}</span>
             </div>`;
-            
         timeline.insertAdjacentHTML('beforeend', loadingHtml);
         timeline.scrollTop = timeline.scrollHeight;
     }
 
     function clearSystemMessage() {
-        const sysMsg = document.getElementById('sys-loading-msg');
-        if (sysMsg) sysMsg.remove();
+        const loader = document.getElementById('sys-loading-msg');
+        if (loader) loader.remove();
     }
 </script>

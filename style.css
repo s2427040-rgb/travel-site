@@ -41,102 +41,122 @@ footer {
     text-align: center;
     padding: 20px 0;
     color: #64748b;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
+    margin-top: 40px;
     border-top: 1px solid var(--border-color);
-    margin-top: auto;
 }
 
-/* --- 3. ホーム画面 (home.html) 用スタイル --- */
-.hero-section {
-    text-align: center;
-    padding: 50px 20px;
-    background: linear-gradient(135deg, #f0fdf4 0%, #e6f4ea 100%);
-    border-radius: 20px;
-    margin-bottom: 40px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-}
-
-.hero-section h1 {
-    font-size: 2.5rem;
-    color: #0f172a;
+/* --- 3. 共通パーツ（ボタン・見出しなど） --- */
+h2 {
     margin-bottom: 15px;
-    font-weight: 700;
 }
 
-.hero-section p {
-    font-size: 1.1rem;
-    color: #475569;
-    margin-bottom: 30px;
+.back-btn {
+    display: block; 
+    margin: 20px auto 0; 
+    padding: 10px 25px;
+    background-color: #64748b; 
+    color: white; 
+    border: none; 
+    border-radius: 8px;
+    cursor: pointer; 
+    font-size: 1rem; 
+    font-weight: bold; 
+    transition: background 0.2s;
 }
 
-.menu-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 25px;
-    margin-bottom: 20px;
+.back-btn:hover { 
+    background-color: #475569; 
+}
+
+.coming-soon {
+    display: none; /* 開発中表記用 */
+}
+
+/* --- 4. ホーム画面 (home.html) 用スタイル --- */
+.menu-grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); 
+    gap: 20px; 
+    width: 100%; 
+    margin-top: 40px; 
 }
 
 .menu-card {
+    background: var(--bg-color); 
+    border: 2px solid var(--border-color); 
+    border-radius: 20px;
+    padding: 40px 20px; 
+    text-align: center; 
+    cursor: pointer; 
+    transition: all 0.3s ease;
+}
+
+.menu-card:hover { 
+    border-color: var(--primary-color); 
+    background-color: #f0fdf4; 
+    transform: translateY(-3px); 
+}
+
+.menu-card i { 
+    font-size: 2.8rem; 
+    color: var(--primary-color); 
+    margin-bottom: 15px; 
+}
+
+.menu-card h2 { 
+    font-size: 1.3rem; 
+}
+
+/* --- 5. チャット画面 (page1.html) 用スタイル --- */
+#chatWindow table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
     background: #ffffff;
+    border-radius: 8px;
+    overflow: hidden;
+    font-size: 14px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+#chatWindow th, #chatWindow td {
     border: 1px solid var(--border-color);
-    border-radius: 16px;
-    padding: 30px;
-    text-align: center;
-    cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+    padding: 8px 10px;
+    text-align: left;
 }
 
-.menu-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 20px -8px rgba(16, 185, 129, 0.15);
-    border-color: var(--primary-color);
-}
-
-.menu-card .icon-wrapper {
-    width: 70px;
-    height: 70px;
-    background: #ecfdf5;
-    color: var(--primary-color);
-    font-size: 2rem;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 20px auto;
-}
-
-.menu-card h3 {
-    font-size: 1.3rem;
+#chatWindow th {
+    background-color: #f1f5f9;
+    font-weight: bold;
     color: #1e293b;
-    margin-bottom: 10px;
 }
 
-.menu-card p {
-    font-size: 0.95rem;
-    color: #64748b;
-    line-height: 1.5;
+#chatWindow tr:nth-child(even) {
+    background-color: #f8fafc;
 }
 
-/* --- 4. チャット・マークダウン用のスタイル調整 --- */
-#chatTimeline p {
-    margin-bottom: 10px;
+#chatWindow ul, #chatWindow ol {
+    padding-left: 20px;
+    margin: 8px 0;
 }
-#chatTimeline p:last-child {
-    margin-bottom: 0;
+
+/* 💡 追加：箇条書きのホテル項目同士の間隔を空ける設定 */
+#chatWindow li {
+    margin-bottom: 16px;      /* ホテルとホテルの間を16px空けて見やすくします */
+    padding-left: 4px;        /* 文字の始まりに少しだけ余裕を持たせます */
 }
-#chatTimeline ul, #chatTimeline ol {
-    margin-left: 20px;
-    margin-bottom: 10px;
+
+#chatWindow li:last-child {
+    margin-bottom: 0;         /* 一番最後の項目の後ろには無駄な余白を作らない */
 }
-#chatTimeline li {
-    margin-bottom: 5px;
-}
+
+/* 箇条書きの中にある太字（ホテル名など）をより際立たせる微調整 */
 #chatWindow li strong {
     color: #0f172a;
 }
 
-/* --- 5. マップ画面 (page2.html) 用スタイル --- */
+/* --- 6. マップ画面 (page2.html) 用スタイル --- */
 .map-container {
     max-width: 900px;
     margin: 0 auto;
@@ -168,4 +188,41 @@ footer {
 .feedback-btn:hover {
     color: var(--primary-color);
     text-shadow: 0 0 1px rgba(16, 185, 129, 0.2);
+}
+
+/* ご意見箱ページのコンテナレイアウト */
+.feedback-container {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 10px 10px 30px 10px;
+    text-align: center;
+}
+
+.feedback-container h2 {
+    font-size: 1.8rem;
+    margin-bottom: 10px;
+    color: var(--text-color);
+}
+
+.feedback-subtitle {
+    font-size: 0.95rem;
+    color: #64748b;
+    margin-bottom: 25px;
+    line-height: 1.5;
+}
+
+/* フォームを囲む枠（スマートフォン対応・影の装飾） */
+.form-wrapper {
+    width: 100%;
+    background: #ffffff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--border-color);
+    margin-bottom: 30px;
+}
+
+/* iframeの微調整 */
+.form-wrapper iframe {
+    display: block; 
 }
