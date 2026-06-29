@@ -61,6 +61,7 @@
 
 <script>
     const VERCEL_SERVER_URL = 'https://dify-backend-bice.vercel.app/api/chat';
+    const FEEDBACK_SERVER_URL = 'https://dify-backend-bice.vercel.app/api/feedback'; // 💡 追加
     let currentConversationId = '';
 
     // 今日以降の日付しか選べないように制限＆初期値をセット
@@ -85,7 +86,6 @@
             return;
         }
 
-        // チャット画面（ユーザーの吹き出し）に見せるスマートなテキスト
         const userViewText = `以下の条件で探してください：\n・目的地：${keyword}\n・日程：${checkin} から ${nights}泊\n・人数：大人 ${adults}名`;
 
         document.getElementById('survey-container').style.display = 'none';
@@ -94,17 +94,16 @@
         appendMessage('user', userViewText);
         showSystemMessage('AIコンシェルジュが楽天トラベルで空室をお調べしています。少々お待ちください...');
 
-        // 💡 対策2：Difyの分岐誤作動を完全に防ぐため、明示的にホテル検索を促す文章を主軸（query）にします
         const clearIntentQuery = `${keyword}のホテルを最優先で検索して提案してください。グルメ情報や観光ルートではなく、楽天トラベルの宿泊施設情報を探しています。`;
 
         fetch(VERCEL_SERVER_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                query: clearIntentQuery, // 観光・グルメへの誤分岐を防ぐための強力な命令指示
+                query: clearIntentQuery,
                 conversation_id: '',
                 inputs: {
-                    "keyword": keyword,      // Difyの「開始ノード」で設定されている変数に値を直接流し込む
+                    "keyword": keyword,
                     "checkInDate": checkin,
                     "stayNights": nights,
                     "adultNum": adults
@@ -119,7 +118,8 @@
             clearSystemMessage();
             currentConversationId = data.conversation_id || '';
             const htmlAnswer = marked.parse(data.answer || '返答がありませんでした。');
-            appendMessage('assistant', htmlAnswer);
+            // 💡 message_id を引数に渡すように修正
+            appendMessage('assistant', htmlAnswer, data.message_id); 
         })
         .catch(err => {
             console.error(err);
@@ -153,7 +153,8 @@
         .then(data => {
             clearSystemMessage();
             const htmlAnswer = marked.parse(data.answer || '');
-            appendMessage('assistant', htmlAnswer);
+            // 💡 message_id を引数に渡すように修正
+            appendMessage('assistant', htmlAnswer, data.message_id);
         })
         .catch(err => {
             console.error(err);
@@ -162,7 +163,8 @@
         });
     }
 
-    function appendMessage(sender, text) {
+    // 💡 第3引数に messageId を受け取れるように拡張
+    function appendMessage(sender, text, messageId = null) {
         const timeline = document.getElementById('chat-timeline');
         if (!timeline) return;
         let msgHtml = "";
@@ -171,6 +173,22 @@
             msgHtml = `<div class="msg-system" style="text-align:center; color:#64748b; font-size:0.9rem; margin:10px 0; font-style:italic;">${text}</div>`;
         } else {
             const isUser = (sender === 'user');
+            
+            // AIからの返答かつ、有効なメッセージIDがある場合に評価ボタンを構築
+            let feedbackHtml = "";
+            if (!isUser && messageId) {
+                feedbackHtml = `
+                    <div class="feedback-container" style="margin-top: 10px; display: flex; gap: 8px; border-top: 1px dashed #e2e8f0; padding-top: 8px; justify-content: flex-end;">
+                        <button onclick="sendFeedback('${messageId}', 'like', this)" style="background: none; border: 1px solid #cbd5e1; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; color: #64748b; display: flex; align-items: center; gap: 4px; transition: all 0.2s;">
+                            <i class="fa-regular fa-thumbs-up"></i>
+                        </button>
+                        <button onclick="sendFeedback('${messageId}', 'dislike', this)" style="background: none; border: 1px solid #cbd5e1; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; color: #64748b; display: flex; align-items: center; gap: 4px; transition: all 0.2s;">
+                            <i class="fa-regular fa-thumbs-down"></i>
+                        </button>
+                    </div>
+                `;
+            }
+
             msgHtml = `
                 <div class="msg-${sender}" style="margin-bottom:15px; text-align: ${isUser ? 'right' : 'left'};">
                     <div style="display:inline-block; max-width:80%; padding:12px 16px; border-radius:12px; 
@@ -179,12 +197,51 @@
                                 box-shadow: 0 2px 6px rgba(0,0,0,0.06); 
                                 text-align:left; line-height:1.5; font-size:0.95rem;">
                         ${text}
+                        ${feedbackHtml}
                     </div>
                 </div>`;
         }
         
         timeline.insertAdjacentHTML('beforeend', msgHtml);
         timeline.scrollTop = timeline.scrollHeight;
+    }
+
+    // 💡 評価をVercel経由でDifyへ送信する関数を追加
+    function sendFeedback(messageId, rating, btn) {
+        const container = btn.parentElement;
+        const buttons = container.querySelectorAll('button');
+        
+        // 連打防止のためボタンを無効化
+        buttons.forEach(b => b.disabled = true);
+
+        // 選択されたボタンに色をつける
+        if (rating === 'like') {
+            btn.style.color = '#10b981';
+            btn.style.borderColor = '#10b981';
+            btn.style.background = '#ecfdf5';
+        } else {
+            btn.style.color = '#ef4444';
+            btn.style.borderColor = '#ef4444';
+            btn.style.background = '#fef2f2';
+        }
+
+        fetch(FEEDBACK_SERVER_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message_id: messageId, rating: rating })
+        })
+        .then(res => {
+            if (!res.ok) throw new Error('Feedback Submit Failed');
+            console.log('Feedback submitted successfully');
+        })
+        .catch(err => {
+            console.error('Feedback Error:', err);
+            // エラー時は状態を戻す
+            buttons.forEach(b => {
+                b.disabled = false;
+                b.style = "";
+            });
+        });
     }
 
     function showSystemMessage(text) {
