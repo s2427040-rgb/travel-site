@@ -84,7 +84,10 @@
             return;
         }
 
-        const userViewText = `以下の条件で探してください：\n・目的地：${keyword}\n・日程：${checkin} から ${nights}泊\n・人数：大人 ${adults}名`;
+        // 💡 Difyの数値型に合わせて数値をパース
+        const parsedAdults = parseInt(adults, 10) || 1;
+
+        const userViewText = `以下の条件で探してください：\n・目的地：${keyword}\n・日程：${checkin} から ${nights}泊\n・人数：大人 ${parsedAdults}名`;
 
         document.getElementById('survey-container').style.display = 'none';
         document.getElementById('chat-container').style.display = 'block';
@@ -100,11 +103,12 @@
             body: JSON.stringify({
                 query: clearIntentQuery,
                 conversation_id: '',
+                adultNum: parsedAdults, // 💡 バックエンドが直接抽出しやすいように追加
                 inputs: {
                     "keyword": keyword,
                     "checkInDate": checkin,
                     "stayNights": nights,
-                    "adultNum": adults
+                    "adultNum": parsedAdults
                 }
             })
         })
