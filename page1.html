@@ -60,13 +60,13 @@
 </div>
 
 <script>
-    // グローバル変数の重複宣言による画面クラッシュを完全に防ぐため window のプロパティに逃がす
+    // 変数の重複宣言エラーを完全に防ぐため window オブジェクトに退避
     window.PAGE1_ENV = {
-        VERCEL_SERVER_URL: 'https://dify-backend-bice.vercel.app/api/chat',
-        FEEDBACK_SERVER_URL: 'https://dify-backend-bice.vercel.app/api/feedback'
+        CHAT_API: 'https://dify-backend-bice.vercel.app/api/chat',
+        FEEDBACK_API: 'https://dify-backend-bice.vercel.app/api/feedback'
     };
     
-    window.currentConversationId = '';
+    window.activeConversationId = '';
 
     // 日付設定の初期化
     (function() {
@@ -91,10 +91,11 @@
             return;
         }
 
+        // 確実に半角数字の数値型にする
         const parsedAdults = parseInt(adults, 10) || 1;
         const parsedNights = parseInt(nights, 10) || 1;
-
-        // 画面のチャットタイムラインに表示するテキスト
+        
+        // チャット画面のタイムライン上に表示するユーザー用テキスト
         const userViewText = `以下の条件で探してください：\n・目的地：${keyword}\n・日程：${checkin} から ${parsedNights}泊\n・人数：大人 ${parsedAdults}名`;
 
         document.getElementById('survey-container').style.display = 'none';
@@ -103,39 +104,37 @@
         appendMessage('user', userViewText);
         showSystemMessage('AIコンシェルジュが楽天トラベルで空室をお調べしています。少々お待ちください...');
 
-        // 💡 パラメータ抽出ノードが確実に「半角数字のみ」を切り出せるように厳密に整形
+        // 💡 パラメータ抽出ノード（stayNights, adultNum）が完璧に認識できるAI特化型フォーマット
         const optimizedDifyQuery = `【旅行条件確定】
 keyword: "${keyword}"
 checkInDate: "${checkin}"
 stayNights: "${parsedNights}"
 adultNum: ${parsedAdults}
 
-上記条件に合致する楽天トラベルの宿泊施設（空室検索結果）のみを検索し、一覧で提案してください。`;
+上記条件に合致する楽天トラベルの宿泊施設のみを検索し、一覧で提案してください。`;
 
-        fetch(window.PAGE1_ENV.VERCEL_SERVER_URL, {
+        fetch(window.PAGE1_ENV.CHAT_API, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 query: optimizedDifyQuery,
-                conversation_id: '',
-                adultNum: parsedAdults,
-                stayNights: parsedNights
+                conversation_id: ''
             })
         })
         .then(res => {
-            if (!res.ok) throw new Error('Dify API Rejected with status ' + res.status);
+            if (!res.ok) throw new Error('Dify API Rejected: ' + res.status);
             return res.json();
         })
         .then(data => {
             clearSystemMessage();
-            window.currentConversationId = data.conversation_id || '';
+            window.activeConversationId = data.conversation_id || '';
             const htmlAnswer = marked.parse(data.answer || '返答がありませんでした。');
             appendMessage('assistant', htmlAnswer, data.message_id); 
         })
         .catch(err => {
             console.error(err);
             clearSystemMessage();
-            appendMessage('system', 'エラーが発生し、宿泊情報を取得できませんでした。');
+            appendMessage('system', '通信エラーまたはDify側のエラーが発生しました。');
         });
     }
 
@@ -148,16 +147,16 @@ adultNum: ${parsedAdults}
         appendMessage('user', text);
         showSystemMessage('コンシェルジュが回答を考えています...');
 
-        fetch(window.PAGE1_ENV.VERCEL_SERVER_URL, {
+        fetch(window.PAGE1_ENV.CHAT_API, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 query: text,
-                conversation_id: window.currentConversationId
+                conversation_id: window.activeConversationId
             })
         })
         .then(res => {
-            if (!res.ok) throw new Error('Network response was not ok');
+            if (!res.ok) throw new Error('Network error');
             return res.json();
         })
         .then(data => {
@@ -238,11 +237,11 @@ adultNum: ${parsedAdults}
             btn.style.background = '#fef2f2';
         }
 
-        fetch(window.PAGE1_ENV.FEEDBACK_SERVER_URL, {
+        fetch(window.PAGE1_ENV.FEEDBACK_API, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-                conversation_id: window.currentConversationId, 
+                conversation_id: window.activeConversationId, 
                 message_id: messageId, 
                 rating: rating,
                 text: aiMessageText
@@ -265,7 +264,7 @@ adultNum: ${parsedAdults}
         const timeline = document.getElementById('chat-timeline');
         if (!timeline) return;
         const loadingHtml = `
-            <div id=\"sys-loading-msg\" style=\"text-align:center; color:#64748b; font-size:0.9rem; margin:10px 0; display:flex; align-items:center; justify-content:center; gap:8px;\">
+            <div id="sys-loading-msg" style="text-align:center; color:#64748b; font-size:0.9rem; margin:10px 0; display:flex; align-items:center; justify-content:center; gap:8px;">
                 <i class="fa-solid fa-circle-notch fa-spin" style="color:#10b981;"></i>
                 <span>${text}</span>
             </div>`;
