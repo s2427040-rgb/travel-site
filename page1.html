@@ -1,3 +1,4 @@
+
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
 <h2 style="margin-bottom: 15px; font-family: 'Noto Sans JP', sans-serif; color: #1e293b;">宿泊先・観光を探す (AIコンシェルジュ)</h2>
@@ -61,7 +62,7 @@
 
 <script>
     const VERCEL_SERVER_URL = 'https://dify-backend-bice.vercel.app/api/chat';
-    const FEEDBACK_SERVER_URL = 'https://dify-backend-bice.vercel.app/api/feedback'; // 💡 評価API用のエンドポイントURL
+    const FEEDBACK_SERVER_URL = 'https://dify-backend-bice.vercel.app/api/feedback'; 
     let currentConversationId = '';
 
     // 今日以降の日付しか選べないように制限＆初期値をセット
@@ -118,7 +119,6 @@
             clearSystemMessage();
             currentConversationId = data.conversation_id || '';
             const htmlAnswer = marked.parse(data.answer || '返答がありませんでした。');
-            // 💡 修正版の chat.js から返却される message_id をしっかり引数に渡す
             appendMessage('assistant', htmlAnswer, data.message_id); 
         })
         .catch(err => {
@@ -153,7 +153,6 @@
         .then(data => {
             clearSystemMessage();
             const htmlAnswer = marked.parse(data.answer || '');
-            // 💡 追加質問の返答時にも、返却される message_id を引数に渡す
             appendMessage('assistant', htmlAnswer, data.message_id);
         })
         .catch(err => {
@@ -163,7 +162,7 @@
         });
     }
 
-    // 💬 メッセージタイムラインへの追加処理（拡張版）
+    // 💬 メッセージタイムラインへの追加処理
     function appendMessage(sender, text, messageId = null) {
         const timeline = document.getElementById('chat-timeline');
         if (!timeline) return;
@@ -174,7 +173,6 @@
         } else {
             const isUser = (sender === 'user');
             
-            // 💡 AIの返答であり、かつ有効なメッセージIDが存在する場合のみ評価ボタンを構築する
             let feedbackHtml = "";
             if (!isUser && messageId) {
                 feedbackHtml = `
@@ -189,14 +187,15 @@
                 `;
             }
 
+            // 💡 吹き出し本体（msg-bubble）にクラスを付与し、後からテキストを抽出しやすくする
             msgHtml = `
                 <div class="msg-${sender}" style="margin-bottom:15px; text-align: ${isUser ? 'right' : 'left'};">
-                    <div style="display:inline-block; max-width:80%; padding:12px 16px; border-radius:12px; 
+                    <div class="msg-bubble" style="display:inline-block; max-width:80%; padding:12px 16px; border-radius:12px; 
                                 background:${isUser ? '#10b981' : '#ffffff'}; 
                                 color:${isUser ? '#ffffff' : '#1e293b'}; 
                                 box-shadow: 0 2px 6px rgba(0,0,0,0.06); 
                                 text-align:left; line-height:1.5; font-size:0.95rem;">
-                        ${text}
+                        <div class="msg-text">${text}</div>
                         ${feedbackHtml}
                     </div>
                 </div>`;
@@ -206,11 +205,16 @@
         timeline.scrollTop = timeline.scrollHeight;
     }
 
-    // 💡 👍・👎ボタンが押された際にVercel(バックエンド)へデータを送信する関数
+    // 💡 👍・👎ボタン送信関数（発言テキスト抽出版）
     function sendFeedback(messageId, rating, btn) {
         const container = btn.parentElement;
         const buttons = container.querySelectorAll('button');
         
+        // 💡 親の吹き出し（.msg-bubble）から、AIの発言テキスト部分（.msg-text）の純粋な文字列だけを取得する
+        const bubble = btn.closest('.msg-bubble');
+        const textElement = bubble ? bubble.querySelector('.msg-text') : null;
+        const aiMessageText = textElement ? textElement.innerText.trim() : "";
+
         // 多重送信防止のために、コンテナ内の評価ボタンを両方無効化
         buttons.forEach(b => b.disabled = true);
 
@@ -225,14 +229,15 @@
             btn.style.background = '#fef2f2';
         }
 
-        // Vercelバックエンドへ、会話ID・メッセージID・評価の種類をセットしてPOST
+        // Vercelバックエンドへ、会話ID・メッセージID・評価・AIの発言テキストをセットしてPOST
         fetch(FEEDBACK_SERVER_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 conversation_id: currentConversationId, 
                 message_id: messageId, 
-                rating: rating 
+                rating: rating,
+                text: aiMessageText // 💡 ここでAIの文章も一緒に送信する
             })
         })
         .then(res => {
@@ -241,7 +246,7 @@
         })
         .catch(err => {
             console.error('Feedback Error:', err);
-            // エラーが発生した場合は、再度押せるように状態を元に戻す
+            // エラーが発生した場合は状態を元に戻す
             buttons.forEach(b => {
                 b.disabled = false;
                 b.style = "";
