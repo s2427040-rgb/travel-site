@@ -1,4 +1,3 @@
-
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
 <h2 style="margin-bottom: 15px; font-family: 'Noto Sans JP', sans-serif; color: #1e293b;">宿泊先・観光を探す (AIコンシェルジュ)</h2>
@@ -65,7 +64,6 @@
     const FEEDBACK_SERVER_URL = 'https://dify-backend-bice.vercel.app/api/feedback'; 
     let currentConversationId = '';
 
-    // 今日以降の日付しか選べないように制限＆初期値をセット
     const today = new Date().toISOString().split('T')[0];
     const checkinInput = document.getElementById('survey-checkin');
     if (checkinInput) {
@@ -75,7 +73,6 @@
 
     function changeNode(type, btn) {}
 
-    // 📋 初回のアンケート送信
     function submitSurvey() {
         const keyword = document.getElementById('survey-keyword').value.trim();
         const checkin = document.getElementById('survey-checkin').value;
@@ -128,7 +125,6 @@
         });
     }
 
-    // 💬 2回目以降の追加チャット送信
     function sendAdditionalMessage() {
         const inputEl = document.getElementById('chat-input');
         const text = inputEl.value.trim();
@@ -162,7 +158,6 @@
         });
     }
 
-    // 💬 メッセージタイムラインへの追加処理
     function appendMessage(sender, text, messageId = null) {
         const timeline = document.getElementById('chat-timeline');
         if (!timeline) return;
@@ -187,7 +182,6 @@
                 `;
             }
 
-            // 💡 吹き出し本体（msg-bubble）にクラスを付与し、後からテキストを抽出しやすくする
             msgHtml = `
                 <div class="msg-${sender}" style="margin-bottom:15px; text-align: ${isUser ? 'right' : 'left'};">
                     <div class="msg-bubble" style="display:inline-block; max-width:80%; padding:12px 16px; border-radius:12px; 
@@ -205,20 +199,21 @@
         timeline.scrollTop = timeline.scrollHeight;
     }
 
-    // 💡 👍・👎ボタン送信関数（発言テキスト抽出版）
     function sendFeedback(messageId, rating, btn) {
         const container = btn.parentElement;
         const buttons = container.querySelectorAll('button');
         
-        // 💡 親の吹き出し（.msg-bubble）から、AIの発言テキスト部分（.msg-text）の純粋な文字列だけを取得する
         const bubble = btn.closest('.msg-bubble');
         const textElement = bubble ? bubble.querySelector('.msg-text') : null;
-        const aiMessageText = textElement ? textElement.innerText.trim() : "";
+        
+        let aiMessageText = "";
+        if (textElement) {
+            aiMessageText = textElement.textContent || textElement.innerText || "";
+            aiMessageText = aiMessageText.trim();
+        }
 
-        // 多重送信防止のために、コンテナ内の評価ボタンを両方無効化
         buttons.forEach(b => b.disabled = true);
 
-        // クリックされたボタンの種類に合わせて色と背景を変化させる
         if (rating === 'like') {
             btn.style.color = '#10b981';
             btn.style.borderColor = '#10b981';
@@ -229,7 +224,8 @@
             btn.style.background = '#fef2f2';
         }
 
-        // Vercelバックエンドへ、会話ID・メッセージID・評価・AIの発言テキストをセットしてPOST
+        console.log("送信するAIテキスト:", aiMessageText);
+
         fetch(FEEDBACK_SERVER_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -237,7 +233,7 @@
                 conversation_id: currentConversationId, 
                 message_id: messageId, 
                 rating: rating,
-                text: aiMessageText // 💡 ここでAIの文章も一緒に送信する
+                text: aiMessageText
             })
         })
         .then(res => {
@@ -246,7 +242,6 @@
         })
         .catch(err => {
             console.error('Feedback Error:', err);
-            // エラーが発生した場合は状態を元に戻す
             buttons.forEach(b => {
                 b.disabled = false;
                 b.style = "";
