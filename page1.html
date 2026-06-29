@@ -60,15 +60,14 @@
 </div>
 
 <script>
-    // 重複宣言エラーを完全に回避するため、再宣言可能な形で定義
-    window.VERCEL_SERVER_URL = 'https://dify-backend-bice.vercel.app/api/chat';
-    window.FEEDBACK_SERVER_URL = 'https://dify-backend-bice.vercel.app/api/feedback'; 
+    // 重複宣言エラー(すでに宣言されています)を完全に回避するため、windowのプロパティとして定義
+    window.PAGE1_CONFIG = {
+        VERCEL_SERVER_URL: 'https://dify-backend-bice.vercel.app/api/chat',
+        FEEDBACK_SERVER_URL: 'https://dify-backend-bice.vercel.app/api/feedback'
+    };
     
-    if (typeof currentConversationId === 'undefined') {
-        var currentConversationId = '';
-    } else {
-        currentConversationId = '';
-    }
+    // 会話IDの初期化（重複防止）
+    window.currentConversationId = '';
 
     // 日付設定の初期化
     (function() {
@@ -102,10 +101,10 @@
         appendMessage('user', userViewText);
         showSystemMessage('AIコンシェルジュが楽天トラベルで空室をお調べしています。少々お待ちください...');
 
-        // Dify側が確実に変数抽出・パラメータ抽出できるように整形したクエリ
+        // クエリ文字列を生成（400エラーを防ぐため、オブジェクトは含めずシンプルな文字列に統一します）
         const clearIntentQuery = `【条件指定】目的地: ${keyword}, チェックイン: ${checkin}, 泊数: ${nights}泊, 人数: ${parsedAdults}名。この条件に合う楽天トラベルの宿泊施設情報を最優先で検索して提案してください。`;
 
-        fetch(window.VERCEL_SERVER_URL, {
+        fetch(window.PAGE1_CONFIG.VERCEL_SERVER_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -120,7 +119,7 @@
         })
         .then(data => {
             clearSystemMessage();
-            currentConversationId = data.conversation_id || '';
+            window.currentConversationId = data.conversation_id || '';
             const htmlAnswer = marked.parse(data.answer || '返答がありませんでした。');
             appendMessage('assistant', htmlAnswer, data.message_id); 
         })
@@ -140,12 +139,12 @@
         appendMessage('user', text);
         showSystemMessage('コンシェルジュが回答を考えています...');
 
-        fetch(window.VERCEL_SERVER_URL, {
+        fetch(window.PAGE1_CONFIG.VERCEL_SERVER_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 query: text,
-                conversation_id: currentConversationId
+                conversation_id: window.currentConversationId
             })
         })
         .then(res => {
@@ -230,11 +229,11 @@
             btn.style.background = '#fef2f2';
         }
 
-        fetch(window.FEEDBACK_SERVER_URL, {
+        fetch(window.PAGE1_CONFIG.FEEDBACK_SERVER_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-                conversation_id: currentConversationId, 
+                conversation_id: window.currentConversationId, 
                 message_id: messageId, 
                 rating: rating,
                 text: aiMessageText
