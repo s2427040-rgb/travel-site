@@ -25,7 +25,7 @@
         </div>
 
         <div style="margin-bottom: 20px;">
-            <label style="display:block; font-weight:bold; margin-bottom:8px; color:#4b5563;">大人の人数</label>
+          <label style="display:block; font-weight:bold; margin-bottom:8px; color:#4b5563;">大人の人数</label>
             <select id="survey-adults" style="padding:10px; border:2px solid #cbd5e1; border-radius:8px; font-size:1rem; color:#4b5563; background:white; width: 100%; box-sizing: border-box;">
                 <option value="1">1名</option>
                 <option value="2">2名</option>
@@ -60,16 +60,25 @@
 </div>
 
 <script>
-    const VERCEL_SERVER_URL = 'https://dify-backend-bice.vercel.app/api/chat';
-    const FEEDBACK_SERVER_URL = 'https://dify-backend-bice.vercel.app/api/feedback'; 
-    let currentConversationId = '';
+    // 変数の重複宣言エラーを完全に防ぐため window オブジェクトに退避
+    window.PAGE1_ENV = {
+        CHAT_API: 'https://dify-backend-bice.vercel.app/api/chat',
+        FEEDBACK_API: 'https://dify-backend-bice.vercel.app/api/feedback'
+    };
+    
+    window.activeConversationId = '';
+    // 💡 フォームで選択された検索条件を確実に永続保持するオブジェクト
+    window.currentSurveyInputs = null;
 
-    const today = new Date().toISOString().split('T')[0];
-    const checkinInput = document.getElementById('survey-checkin');
-    if (checkinInput) {
-        checkinInput.min = today;
-        checkinInput.value = today;
-    }
+    // 日付設定の初期化
+    (function() {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const checkinInput = document.getElementById('survey-checkin');
+        if (checkinInput) {
+            checkinInput.min = todayStr;
+            checkinInput.value = todayStr;
+        }
+    })();
 
     function changeNode(type, btn) {}
 
@@ -84,7 +93,10 @@
             return;
         }
 
-        const userViewText = `以下の条件で探してください：\n・目的地：${keyword}\n・日程：${checkin} から ${nights}泊\n・人数：大人 ${adults}名`;
+        const parsedAdults = parseInt(adults, 10) || 1;
+        const parsedNights = parseInt(nights, 10) || 1;
+        
+        const userViewText = `以下の条件で探してください：\n・目的地：${keyword}\n・日程：${checkin} から ${parsedNights}泊\n・人数：大人 ${parsedAdults}名`;
 
         document.getElementById('survey-container').style.display = 'none';
         document.getElementById('chat-container').style.display = 'block';
@@ -92,36 +104,37 @@
         appendMessage('user', userViewText);
         showSystemMessage('AIコンシェルジュが楽天トラベルで空室をお調べしています。少々お待ちください...');
 
-        const clearIntentQuery = `${keyword}のホテルを最優先で検索して提案してください。グルメ情報や観光ルートではなく、楽天トラベルの宿泊施設情報を探しています。`;
+        // 💡 DifyのStartノード（開始ノード）の変数仕様に完全適合させたマッピング
+        window.currentSurveyInputs = {
+            keyword: keyword,
+            checkInDate: checkin,
+            stayNights: String(parsedNights),
+            adultNum: parsedAdults
+        };
 
-        fetch(VERCEL_SERVER_URL, {
+        fetch(window.PAGE1_ENV.CHAT_API, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                query: clearIntentQuery,
+                query: userViewText,
                 conversation_id: '',
-                inputs: {
-                    "keyword": keyword,
-                    "checkInDate": checkin,
-                    "stayNights": nights,
-                    "adultNum": adults
-                }
+                inputs: window.currentSurveyInputs // 💡 構造化データをバックエンドへ直接引き渡し
             })
         })
         .then(res => {
-            if (!res.ok) throw new Error('Dify API Rejected');
+            if (!res.ok) throw new Error('Dify API Rejected: ' + res.status);
             return res.json();
         })
         .then(data => {
             clearSystemMessage();
-            currentConversationId = data.conversation_id || '';
+            window.activeConversationId = data.conversation_id || '';
             const htmlAnswer = marked.parse(data.answer || '返答がありませんでした。');
             appendMessage('assistant', htmlAnswer, data.message_id); 
         })
         .catch(err => {
             console.error(err);
             clearSystemMessage();
-            appendMessage('system', 'エラーが発生し、宿泊情報を取得できませんでした。');
+            appendMessage('system', '通信エラーまたはDify側のエラーが発生しました。');
         });
     }
 
@@ -134,16 +147,17 @@
         appendMessage('user', text);
         showSystemMessage('コンシェルジュが回答を考えています...');
 
-        fetch(VERCEL_SERVER_URL, {
+        fetch(window.PAGE1_ENV.CHAT_API, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 query: text,
-                conversation_id: currentConversationId
+                conversation_id: window.activeConversationId,
+                inputs: window.currentSurveyInputs // 💡 追加のチャット質問時も初期条件を継続して送信
             })
         })
         .then(res => {
-            if (!res.ok) throw new Error('Network response was not ok');
+            if (!res.ok) throw new Error('Network error');
             return res.json();
         })
         .then(data => {
@@ -224,13 +238,11 @@
             btn.style.background = '#fef2f2';
         }
 
-        console.log("送信するAIテキスト:", aiMessageText);
-
-        fetch(FEEDBACK_SERVER_URL, {
+        fetch(window.PAGE1_ENV.FEEDBACK_API, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-                conversation_id: currentConversationId, 
+                conversation_id: window.activeConversationId, 
                 message_id: messageId, 
                 rating: rating,
                 text: aiMessageText
@@ -238,7 +250,6 @@
         })
         .then(res => {
             if (!res.ok) throw new Error('Feedback Submit Failed');
-            console.log('Feedback saved to Spreadsheet successfully');
         })
         .catch(err => {
             console.error('Feedback Error:', err);
@@ -262,6 +273,7 @@
         timeline.scrollTop = timeline.scrollHeight;
     }
 
+    function clearIntervals() {}
     function clearSystemMessage() {
         const loader = document.getElementById('sys-loading-msg');
         if (loader) loader.remove();
