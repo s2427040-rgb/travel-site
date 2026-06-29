@@ -60,16 +60,25 @@
 </div>
 
 <script>
-    const VERCEL_SERVER_URL = 'https://dify-backend-bice.vercel.app/api/chat';
-    const FEEDBACK_SERVER_URL = 'https://dify-backend-bice.vercel.app/api/feedback'; 
-    let currentConversationId = '';
-
-    const today = new Date().toISOString().split('T')[0];
-    const checkinInput = document.getElementById('survey-checkin');
-    if (checkinInput) {
-        checkinInput.min = today;
-        checkinInput.value = today;
+    // 重複宣言エラーを完全に回避するため、再宣言可能な形で定義
+    window.VERCEL_SERVER_URL = 'https://dify-backend-bice.vercel.app/api/chat';
+    window.FEEDBACK_SERVER_URL = 'https://dify-backend-bice.vercel.app/api/feedback'; 
+    
+    if (typeof currentConversationId === 'undefined') {
+        var currentConversationId = '';
+    } else {
+        currentConversationId = '';
     }
+
+    // 日付設定の初期化
+    (function() {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const checkinInput = document.getElementById('survey-checkin');
+        if (checkinInput) {
+            checkinInput.min = todayStr;
+            checkinInput.value = todayStr;
+        }
+    })();
 
     function changeNode(type, btn) {}
 
@@ -84,9 +93,7 @@
             return;
         }
 
-        // 💡 Difyの数値型に合わせて数値をパース
         const parsedAdults = parseInt(adults, 10) || 1;
-
         const userViewText = `以下の条件で探してください：\n・目的地：${keyword}\n・日程：${checkin} から ${nights}泊\n・人数：大人 ${parsedAdults}名`;
 
         document.getElementById('survey-container').style.display = 'none';
@@ -95,25 +102,20 @@
         appendMessage('user', userViewText);
         showSystemMessage('AIコンシェルジュが楽天トラベルで空室をお調べしています。少々お待ちください...');
 
-        const clearIntentQuery = `${keyword}のホテルを最優先で検索して提案してください。グルメ情報や観光ルートではなく、楽天トラベルの宿泊施設情報を探しています。`;
+        // Dify側が確実に変数抽出・パラメータ抽出できるように整形したクエリ
+        const clearIntentQuery = `【条件指定】目的地: ${keyword}, チェックイン: ${checkin}, 泊数: ${nights}泊, 人数: ${parsedAdults}名。この条件に合う楽天トラベルの宿泊施設情報を最優先で検索して提案してください。`;
 
-        fetch(VERCEL_SERVER_URL, {
+        fetch(window.VERCEL_SERVER_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 query: clearIntentQuery,
                 conversation_id: '',
-                adultNum: parsedAdults, // 💡 バックエンドが直接抽出しやすいように追加
-                inputs: {
-                    "keyword": keyword,
-                    "checkInDate": checkin,
-                    "stayNights": nights,
-                    "adultNum": parsedAdults
-                }
+                adultNum: parsedAdults // 💡 バックエンド（chat.js）へ安全に引き渡す
             })
         })
         .then(res => {
-            if (!res.ok) throw new Error('Dify API Rejected');
+            if (!res.ok) throw new Error('Dify API Rejected with status ' + res.status);
             return res.json();
         })
         .then(data => {
@@ -138,7 +140,7 @@
         appendMessage('user', text);
         showSystemMessage('コンシェルジュが回答を考えています...');
 
-        fetch(VERCEL_SERVER_URL, {
+        fetch(window.VERCEL_SERVER_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -228,9 +230,7 @@
             btn.style.background = '#fef2f2';
         }
 
-        console.log("送信するAIテキスト:", aiMessageText);
-
-        fetch(FEEDBACK_SERVER_URL, {
+        fetch(window.FEEDBACK_SERVER_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
@@ -242,7 +242,6 @@
         })
         .then(res => {
             if (!res.ok) throw new Error('Feedback Submit Failed');
-            console.log('Feedback saved to Spreadsheet successfully');
         })
         .catch(err => {
             console.error('Feedback Error:', err);
@@ -266,6 +265,7 @@
         timeline.scrollTop = timeline.scrollHeight;
     }
 
+    function clearIntervals() {}
     function clearSystemMessage() {
         const loader = document.getElementById('sys-loading-msg');
         if (loader) loader.remove();
