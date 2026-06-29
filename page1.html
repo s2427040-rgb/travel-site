@@ -60,14 +60,13 @@
 </div>
 
 <script>
-    // 重複宣言エラー(すでに宣言されています)を完全に回避するため、windowのプロパティとして定義
-    window.PAGE1_CONFIG = {
-        VERCEL_SERVER_URL: 'https://dify-backend-bice.vercel.app/api/chat',
-        FEEDBACK_SERVER_URL: 'https://dify-backend-bice.vercel.app/api/feedback'
+    // グローバル変数の重複エラーを完全に避けるため window オブジェクトに逃がす
+    window.PAGE_ENV = {
+        CHAT_API: 'https://dify-backend-bice.vercel.app/api/chat',
+        FEEDBACK_API: 'https://dify-backend-bice.vercel.app/api/feedback'
     };
     
-    // 会話IDの初期化（重複防止）
-    window.currentConversationId = '';
+    window.activeConversationId = '';
 
     // 日付設定の初期化
     (function() {
@@ -93,6 +92,8 @@
         }
 
         const parsedAdults = parseInt(adults, 10) || 1;
+        
+        // 画面に表示するユーザー用テキスト
         const userViewText = `以下の条件で探してください：\n・目的地：${keyword}\n・日程：${checkin} から ${nights}泊\n・人数：大人 ${parsedAdults}名`;
 
         document.getElementById('survey-container').style.display = 'none';
@@ -101,32 +102,37 @@
         appendMessage('user', userViewText);
         showSystemMessage('AIコンシェルジュが楽天トラベルで空室をお調べしています。少々お待ちください...');
 
-        // クエリ文字列を生成（400エラーを防ぐため、オブジェクトは含めずシンプルな文字列に統一します）
-        const clearIntentQuery = `【条件指定】目的地: ${keyword}, チェックイン: ${checkin}, 泊数: ${nights}泊, 人数: ${parsedAdults}名。この条件に合う楽天トラベルの宿泊施設情報を最優先で検索して提案してください。`;
+        // 💡 Difyの「パラメータ抽出ノード」が100%変数を誤解なく認識できるフォーマットで送信します
+        const optimizedDifyQuery = `【旅行条件確定】
+keyword: "${keyword}"
+checkInDate: "${checkin}"
+stayNights: "${nights}"
+adultNum: ${parsedAdults}
 
-        fetch(window.PAGE1_CONFIG.VERCEL_SERVER_URL, {
+上記条件に合致する楽天トラベルの宿泊施設（空室検索結果）のみを検索し、一覧で提案してください。`;
+
+        fetch(window.PAGE_ENV.CHAT_API, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                query: clearIntentQuery,
-                conversation_id: '',
-                adultNum: parsedAdults // 💡 バックエンド（chat.js）へ安全に引き渡す
+                query: optimizedDifyQuery,
+                conversation_id: ''
             })
         })
         .then(res => {
-            if (!res.ok) throw new Error('Dify API Rejected with status ' + res.status);
+            if (!res.ok) throw new Error('Dify API Rejected: ' + res.status);
             return res.json();
         })
         .then(data => {
             clearSystemMessage();
-            window.currentConversationId = data.conversation_id || '';
+            window.activeConversationId = data.conversation_id || '';
             const htmlAnswer = marked.parse(data.answer || '返答がありませんでした。');
             appendMessage('assistant', htmlAnswer, data.message_id); 
         })
         .catch(err => {
             console.error(err);
             clearSystemMessage();
-            appendMessage('system', 'エラーが発生し、宿泊情報を取得できませんでした。');
+            appendMessage('system', '通信エラーまたはDify側のエラーが発生しました。設定をご確認ください。');
         });
     }
 
@@ -139,16 +145,16 @@
         appendMessage('user', text);
         showSystemMessage('コンシェルジュが回答を考えています...');
 
-        fetch(window.PAGE1_CONFIG.VERCEL_SERVER_URL, {
+        fetch(window.PAGE_ENV.CHAT_API, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 query: text,
-                conversation_id: window.currentConversationId
+                conversation_id: window.activeConversationId
             })
         })
         .then(res => {
-            if (!res.ok) throw new Error('Network response was not ok');
+            if (!res.ok) throw new Error('Network error');
             return res.json();
         })
         .then(data => {
@@ -229,11 +235,11 @@
             btn.style.background = '#fef2f2';
         }
 
-        fetch(window.PAGE1_CONFIG.FEEDBACK_SERVER_URL, {
+        fetch(window.PAGE_ENV.FEEDBACK_API, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-                conversation_id: window.currentConversationId, 
+                conversation_id: window.activeConversationId, 
                 message_id: messageId, 
                 rating: rating,
                 text: aiMessageText
