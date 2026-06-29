@@ -61,7 +61,7 @@
 
 <script>
     const VERCEL_SERVER_URL = 'https://dify-backend-bice.vercel.app/api/chat';
-    const FEEDBACK_SERVER_URL = 'https://dify-backend-bice.vercel.app/api/feedback'; // 💡 追加
+    const FEEDBACK_SERVER_URL = 'https://dify-backend-bice.vercel.app/api/feedback'; // 💡 評価API用のエンドポイントURL
     let currentConversationId = '';
 
     // 今日以降の日付しか選べないように制限＆初期値をセット
@@ -118,7 +118,7 @@
             clearSystemMessage();
             currentConversationId = data.conversation_id || '';
             const htmlAnswer = marked.parse(data.answer || '返答がありませんでした。');
-            // 💡 message_id を引数に渡すように修正
+            // 💡 修正版の chat.js から返却される message_id をしっかり引数に渡す
             appendMessage('assistant', htmlAnswer, data.message_id); 
         })
         .catch(err => {
@@ -153,7 +153,7 @@
         .then(data => {
             clearSystemMessage();
             const htmlAnswer = marked.parse(data.answer || '');
-            // 💡 message_id を引数に渡すように修正
+            // 💡 追加質問の返答時にも、返却される message_id を引数に渡す
             appendMessage('assistant', htmlAnswer, data.message_id);
         })
         .catch(err => {
@@ -163,7 +163,7 @@
         });
     }
 
-    // 💡 第3引数に messageId を受け取れるように拡張
+    // 💬 メッセージタイムラインへの追加処理（拡張版）
     function appendMessage(sender, text, messageId = null) {
         const timeline = document.getElementById('chat-timeline');
         if (!timeline) return;
@@ -174,7 +174,7 @@
         } else {
             const isUser = (sender === 'user');
             
-            // AIからの返答かつ、有効なメッセージIDがある場合に評価ボタンを構築
+            // 💡 AIの返答であり、かつ有効なメッセージIDが存在する場合のみ評価ボタンを構築する
             let feedbackHtml = "";
             if (!isUser && messageId) {
                 feedbackHtml = `
@@ -206,15 +206,15 @@
         timeline.scrollTop = timeline.scrollHeight;
     }
 
-    // 💡 評価をVercel経由でDifyへ送信する関数を追加
+    // 💡 👍・👎ボタンが押された際にVercel(バックエンド)へデータを送信する関数
     function sendFeedback(messageId, rating, btn) {
         const container = btn.parentElement;
         const buttons = container.querySelectorAll('button');
         
-        // 連打防止のためボタンを無効化
+        // 多重送信防止のために、コンテナ内の評価ボタンを両方無効化
         buttons.forEach(b => b.disabled = true);
 
-        // 選択されたボタンに色をつける
+        // クリックされたボタンの種類に合わせて色と背景を変化させる
         if (rating === 'like') {
             btn.style.color = '#10b981';
             btn.style.borderColor = '#10b981';
@@ -225,18 +225,23 @@
             btn.style.background = '#fef2f2';
         }
 
+        // Vercelバックエンドへ、会話ID・メッセージID・評価の種類をセットしてPOST
         fetch(FEEDBACK_SERVER_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message_id: messageId, rating: rating })
+            body: JSON.stringify({ 
+                conversation_id: currentConversationId, 
+                message_id: messageId, 
+                rating: rating 
+            })
         })
         .then(res => {
             if (!res.ok) throw new Error('Feedback Submit Failed');
-            console.log('Feedback submitted successfully');
+            console.log('Feedback saved to Spreadsheet successfully');
         })
         .catch(err => {
             console.error('Feedback Error:', err);
-            // エラー時は状態を戻す
+            // エラーが発生した場合は、再度押せるように状態を元に戻す
             buttons.forEach(b => {
                 b.disabled = false;
                 b.style = "";
@@ -261,7 +266,6 @@
         const loader = document.getElementById('sys-loading-msg');
         if (loader) loader.remove();
     }
-   
 </script>
 
- <button class="back-btn" onclick="showPage('home')">ホームに戻る</button>
+<button class="back-btn" onclick="showPage('home')">ホームに戻る</button>
