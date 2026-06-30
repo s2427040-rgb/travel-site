@@ -109,7 +109,7 @@
             keyword: keyword,
             checkInDate: checkin,
             stayNights: String(parsedNights),
-            adultNum: parsedAdults
+            adultNum: String(parsedAdults) // ✨ DifyのText型（文字列）エラー対策で型を数値から文字列へ修正しました
         };
 
         fetch(window.PAGE1_ENV.CHAT_API, {
