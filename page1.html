@@ -34,7 +34,7 @@
             </select>
         </div>
 
-        <div style="margin-bottom: 25px;">
+        <div style="margin-bottom: 20px;">
             <label style="display:block; font-weight:bold; margin-bottom:8px; color:#4b5563;">宿泊日数</label>
             <select id="survey-nights" style="padding:10px; border:2px solid #cbd5e1; border-radius:8px; font-size:1rem; color:#4b5563; background:white; width: 100%; box-sizing: border-box;">
                 <option value="1">1泊</option>
@@ -42,6 +42,16 @@
                 <option value="3">3泊</option>
                 <option value="4">4泊以上</option>
             </select>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <label style="display:block; font-weight:bold; margin-bottom:8px; color:#4b5563;">最高予算 (任意)</label>
+            <input type="number" id="survey-maxcharge" placeholder="例：8000 (半角数字のみ)" style="width:100%; padding:12px; border:2px solid #cbd5e1; border-radius:8px; font-size:1rem; box-sizing:border-box; outline:none; transition:border-color 0.2s;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#cbd5e1'">
+        </div>
+
+        <div style="margin-bottom: 25px;">
+            <label style="display:block; font-weight:bold; margin-bottom:8px; color:#4b5563;">こだわり条件・フリーワード (任意)</label>
+            <input type="text" id="survey-hotelkeyword" placeholder="例：温泉、禁煙、駐車場あり" style="width:100%; padding:12px; border:2px solid #cbd5e1; border-radius:8px; font-size:1rem; box-sizing:border-box; outline:none; transition:border-color 0.2s;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#cbd5e1'">
         </div>
 
         <button type="button" onclick="submitSurvey()" style="width:100%; padding:14px; background:#10b981; color:white; border:none; border-radius:8px; font-size:1.1rem; font-weight:bold; cursor:pointer; box-shadow:0 4px 6px rgba(16,185,129,0.2); transition:background 0.2s;">
@@ -60,17 +70,14 @@
 </div>
 
 <script>
-    // 変数の重複宣言エラーを完全に防ぐため window オブジェクトに退避
     window.PAGE1_ENV = {
         CHAT_API: 'https://dify-backend-bice.vercel.app/api/chat',
         FEEDBACK_API: 'https://dify-backend-bice.vercel.app/api/feedback'
     };
     
     window.activeConversationId = '';
-    // 💡 フォームで選択された検索条件を確実に永続保持するオブジェクト
     window.currentSurveyInputs = null;
 
-    // 日付設定の初期化
     (function() {
         const todayStr = new Date().toISOString().split('T')[0];
         const checkinInput = document.getElementById('survey-checkin');
@@ -87,6 +94,8 @@
         const checkin = document.getElementById('survey-checkin').value;
         const adults = document.getElementById('survey-adults').value;
         const nights = document.getElementById('survey-nights').value;
+        const maxCharge = document.getElementById('survey-maxcharge').value.trim();
+        const hotelKeyword = document.getElementById('survey-hotelkeyword').value.trim();
 
         if (!keyword) {
             alert('目的地・キーワードを入力してください。');
@@ -96,7 +105,10 @@
         const parsedAdults = parseInt(adults, 10) || 1;
         const parsedNights = parseInt(nights, 10) || 1;
         
-        const userViewText = `以下の条件で探してください：\n・目的地：${keyword}\n・日程：${checkin} から ${parsedNights}泊\n・人数：大人 ${parsedAdults}名`;
+        // 💡 チャット画面に表示するユーザーテキストの動的構築
+        let userViewText = `以下の条件で探してください：\n・目的地：${keyword}\n・日程：${checkin} から ${parsedNights}泊\n・人数：大人 ${parsedAdults}名`;
+        if (maxCharge) userViewText += `\n・最高予算：${maxCharge}円以下`;
+        if (hotelKeyword) userViewText += `\n・こだわり条件：${hotelKeyword}`;
 
         document.getElementById('survey-container').style.display = 'none';
         document.getElementById('chat-container').style.display = 'block';
@@ -104,21 +116,23 @@
         appendMessage('user', userViewText);
         showSystemMessage('AIコンシェルジュが楽天トラベルで空室をお調べしています。少々お待ちください...');
 
-        // 💡 DifyのStartノード（開始ノード）の変数仕様に完全適合させたマッピング
+        // 💡 新しい条件（maxCharge, hotelKeyword）をinputsオブジェクトに統合
         window.currentSurveyInputs = {
             keyword: keyword,
             checkInDate: checkin,
             stayNights: String(parsedNights),
-            adultNum: String(parsedAdults) // ✨ DifyのText型（文字列）エラー対策で型を数値から文字列へ修正しました
+            adultNum: String(parsedAdults),
+            maxCharge: maxCharge ? String(maxCharge) : '',
+            hotelKeyword: hotelKeyword || ''
         };
 
         fetch(window.PAGE1_ENV.CHAT_API, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                query: userViewText,
-                conversation_id: '',
-                inputs: window.currentSurveyInputs // 💡 構造化データをバックエンドへ直接引き渡し
+            body: JSON.stringify({ 
+                query: userViewText, 
+                conversation_id: '', 
+                inputs: window.currentSurveyInputs 
             })
         })
         .then(res => {
@@ -129,7 +143,7 @@
             clearSystemMessage();
             window.activeConversationId = data.conversation_id || '';
             const htmlAnswer = marked.parse(data.answer || '返答がありませんでした。');
-            appendMessage('assistant', htmlAnswer, data.message_id); 
+            appendMessage('assistant', htmlAnswer, data.message_id);
         })
         .catch(err => {
             console.error(err);
@@ -142,7 +156,6 @@
         const inputEl = document.getElementById('chat-input');
         const text = inputEl.value.trim();
         if (!text) return;
-
         inputEl.value = '';
         appendMessage('user', text);
         showSystemMessage('コンシェルジュが回答を考えています...');
@@ -150,65 +163,49 @@
         fetch(window.PAGE1_ENV.CHAT_API, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                query: text,
-                conversation_id: window.activeConversationId,
-                inputs: window.currentSurveyInputs // 💡 追加のチャット質問時も初期条件を継続して送信
+            body: JSON.stringify({ 
+                query: text, 
+                conversation_id: window.activeConversationId, 
+                inputs: window.currentSurveyInputs 
             })
         })
         .then(res => {
-            if (!res.ok) throw new Error('Network error');
+            if (!res.ok) throw new Error('Dify API Rejected: ' + res.status);
             return res.json();
         })
         .then(data => {
             clearSystemMessage();
-            const htmlAnswer = marked.parse(data.answer || '');
+            const htmlAnswer = marked.parse(data.answer || '返答がありませんでした。');
             appendMessage('assistant', htmlAnswer, data.message_id);
         })
         .catch(err => {
             console.error(err);
             clearSystemMessage();
-            appendMessage('system', 'エラーが発生し、回答を取得できませんでした。');
+            appendMessage('system', 'エラーが発生しました。時間を置いて再度お試しください。');
         });
     }
 
     function appendMessage(sender, text, messageId = null) {
         const timeline = document.getElementById('chat-timeline');
         if (!timeline) return;
-        let msgHtml = "";
-
-        if (sender === 'system') {
-            msgHtml = `<div class="msg-system" style="text-align:center; color:#64748b; font-size:0.9rem; margin:10px 0; font-style:italic;">${text}</div>`;
-        } else {
-            const isUser = (sender === 'user');
-            
-            let feedbackHtml = "";
-            if (!isUser && messageId) {
-                feedbackHtml = `
-                    <div class="feedback-container" style="margin-top: 10px; display: flex; gap: 8px; border-top: 1px dashed #e2e8f0; padding-top: 8px; justify-content: flex-end;">
-                        <button onclick="sendFeedback('${messageId}', 'like', this)" style="background: none; border: 1px solid #cbd5e1; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; color: #64748b; display: flex; align-items: center; gap: 4px; transition: all 0.2s;">
-                            <i class="fa-regular fa-thumbs-up"></i>
-                        </button>
-                        <button onclick="sendFeedback('${messageId}', 'dislike', this)" style="background: none; border: 1px solid #cbd5e1; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; color: #64748b; display: flex; align-items: center; gap: 4px; transition: all 0.2s;">
-                            <i class="fa-regular fa-thumbs-down"></i>
-                        </button>
-                    </div>
-                `;
-            }
-
-            msgHtml = `
-                <div class="msg-${sender}" style="margin-bottom:15px; text-align: ${isUser ? 'right' : 'left'};">
-                    <div class="msg-bubble" style="display:inline-block; max-width:80%; padding:12px 16px; border-radius:12px; 
-                                background:${isUser ? '#10b981' : '#ffffff'}; 
-                                color:${isUser ? '#ffffff' : '#1e293b'}; 
-                                box-shadow: 0 2px 6px rgba(0,0,0,0.06); 
-                                text-align:left; line-height:1.5; font-size:0.95rem;">
-                        <div class="msg-text">${text}</div>
-                        ${feedbackHtml}
-                    </div>
+        
+        let feedbackHtml = "";
+        if (sender === 'assistant' && messageId) {
+            feedbackHtml = `
+                <div class="feedback-container" style="margin-top: 10px; display: flex; gap: 8px;">
+                    <button onclick="sendFeedback('${messageId}', 1, this)" style="background:none; border:1px solid #cbd5e1; border-radius:4px; padding:2px 8px; cursor:pointer; font-size:0.8rem; color:#64748b;"><i class="fa-regular fa-thumbs-up"></i> 良い</button>
+                    <button onclick="sendFeedback('${messageId}', -1, this)" style="background:none; border:1px solid #cbd5e1; border-radius:4px; padding:2px 8px; cursor:pointer; font-size:0.8rem; color:#64748b;"><i class="fa-regular fa-thumbs-down"></i> 悪い</button>
                 </div>`;
         }
-        
+
+        const isUser = (sender === 'user');
+        const msgHtml = `
+            <div style="display:flex; justify-content:${isUser ? 'flex-end' : 'flex-start'}; margin-bottom:15px;">
+                <div class="msg-bubble" style="max-width:75%; padding:12px 16px; border-radius:12px; background:${isUser ? '#10b981' : '#ffffff'}; color:${isUser ? '#ffffff' : '#1e293b'}; box-shadow:0 2px 4px rgba(0,0,0,0.05); text-align:left; line-height:1.5; font-size:0.95rem;">
+                    <div class="msg-text">${text}</div>
+                    ${feedbackHtml}
+                </div>
+            </div>`;
         timeline.insertAdjacentHTML('beforeend', msgHtml);
         timeline.scrollTop = timeline.scrollHeight;
     }
@@ -216,27 +213,14 @@
     function sendFeedback(messageId, rating, btn) {
         const container = btn.parentElement;
         const buttons = container.querySelectorAll('button');
-        
         const bubble = btn.closest('.msg-bubble');
         const textElement = bubble ? bubble.querySelector('.msg-text') : null;
-        
         let aiMessageText = "";
         if (textElement) {
             aiMessageText = textElement.textContent || textElement.innerText || "";
             aiMessageText = aiMessageText.trim();
         }
-
         buttons.forEach(b => b.disabled = true);
-
-        if (rating === 'like') {
-            btn.style.color = '#10b981';
-            btn.style.borderColor = '#10b981';
-            btn.style.background = '#ecfdf5';
-        } else {
-            btn.style.color = '#ef4444';
-            btn.style.borderColor = '#ef4444';
-            btn.style.background = '#fef2f2';
-        }
 
         fetch(window.PAGE1_ENV.FEEDBACK_API, {
             method: 'POST',
@@ -265,8 +249,8 @@
         const timeline = document.getElementById('chat-timeline');
         if (!timeline) return;
         const loadingHtml = `
-            <div id="sys-loading-msg" style="text-align:center; color:#64748b; font-size:0.9rem; margin:10px 0; display:flex; align-items:center; justify-content:center; gap:8px;">
-                <i class="fa-solid fa-circle-notch fa-spin" style="color:#10b981;"></i>
+            <div id=\"sys-loading-msg\" style=\"text-align:center; color:#64748b; font-size:0.9rem; margin:10px 0; display:flex; align-items:center; justify-content:center; gap:8px;\">
+                <i class=\"fa-solid fa-circle-notch fa-spin\" style=\"color:#10b981;\"></i>
                 <span>${text}</span>
             </div>`;
         timeline.insertAdjacentHTML('beforeend', loadingHtml);
